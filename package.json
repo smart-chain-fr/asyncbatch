@@ -6,22 +6,32 @@
   "types": "lib/main.d.ts",
   "scripts": {
     "prepare": "run npm build",
-    "version" : "npm run format && git add -A src",
-    "postversion" : "git push && git push --tags",
+    "prepublishOnly" : "npm test",
+    "version": "npm run format && git add -A src",
+    "postversion": "git push && git push --tags",
     "start": "node ./lib/main.js",
     "build": "tsc",
     "dev": "tsc && npm run start",
     "format": "prettier --write \"src/**/*.ts\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest --config jestconfig.json"
   },
-  "files": ["lib/**/*"],
+  "files": [
+    "lib/**/*"
+  ],
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/smart-massi/asyncbatch"
   },
   "author": "Massinissa Hamidouche",
   "license": "ISC",
   "devDependencies": {
+    "@types/jest": "^29.5.2",
+    "jest": "^29.5.0",
     "prettier": "^2.8.8",
+    "ts-jest": "^29.1.0",
     "typescript": "^5.1.3"
   }
 }
