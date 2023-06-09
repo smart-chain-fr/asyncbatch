@@ -1,0 +1,27 @@
+{
+  "name": "asyncbatch",
+  "version": "1.0.0",
+  "description": "Asynchronously process task batches",
+  "main": "lib/main.js",
+  "types": "lib/main.d.ts",
+  "scripts": {
+    "prepare": "run npm build",
+    "version" : "npm run format && git add -A src",
+    "postversion" : "git push && git push --tags",
+    "start": "node ./lib/main.js",
+    "build": "tsc",
+    "dev": "tsc && npm run start",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "files": ["lib/**/*"],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
+  "author": "Massinissa Hamidouche",
+  "license": "ISC",
+  "devDependencies": {
+    "prettier": "^2.8.8",
+    "typescript": "^5.1.3"
+  }
+}
