@@ -1,11 +1,11 @@
 {
-  "name": "asyncbatch",
-  "version": "1.0.0",
+  "name": "@smart-massi/asyncbatch",
+  "version": "1.0.1",
   "description": "Asynchronously process task batches",
   "main": "lib/main.js",
   "types": "lib/main.d.ts",
   "scripts": {
-    "prepare": "run npm build",
+    "prepare": "npm run build",
     "prepublishOnly" : "npm test",
     "version": "npm run format && git add -A src",
     "postversion": "git push && git push --tags",
@@ -19,7 +19,7 @@
     "lib/**/*"
   ],
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com/"
+    "registry": "https://npm.pkg.github.com"
   },
   "repository": {
     "type": "git",
