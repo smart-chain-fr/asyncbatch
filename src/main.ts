@@ -1,1 +1,3 @@
-export const Greeter = (name: string) => `Hello ${name}`;
+import _AsyncBatch from "./AsyncBatch";
+
+export const AsyncBatch = _AsyncBatch;
