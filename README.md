@@ -1,3 +1,3 @@
 # asyncbatch
-WIP npm package
+## WIP npm package
 Asynchronously process task batches
