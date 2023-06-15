@@ -33,5 +33,6 @@ jobs:
           registry-url: https://npm.pkg.github.com/
       - run: npm ci
       - run: npm publish
+      - run: npm run version
         env:
           NODE_AUTH_TOKEN: ${{Secrets.ASYNCBATCH}}
