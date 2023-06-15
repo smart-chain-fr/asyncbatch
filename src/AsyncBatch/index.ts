@@ -4,7 +4,7 @@ import Emitter from "./Emitter";
 import Deferred from "promise-deferred";
 /**
  * @example
- * const datas = [1, 2, 3];
+ * const datas = [1, 2, 3, 4];
  * const asyncBatch = AsyncBatch.create(datas, action, { maxConcurrency: 4, autoStart: false })
  * .start()
  * .add(4, 5, 6).add([7, 8])
