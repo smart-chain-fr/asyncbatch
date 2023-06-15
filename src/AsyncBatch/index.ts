@@ -63,7 +63,7 @@ export default class AsyncBatch<T> {
 	public addMany(datas: T[]): AsyncBatch<T> {
 		this.add(...datas);
 
-		this.waitingDatasDeferred.resolve(undefined);
+		if(this.isWaitingNewDatas) this.waitingDatasDeferred.resolve(undefined);
 		return this;
 	}
 
@@ -183,20 +183,19 @@ export default class AsyncBatch<T> {
 		this.emitter.emit(eventName, data);
 	}
 
-	private async handleQueue(): Promise<AsyncBatch<T>> {
-		if (this.isStartedQueue) return this;
+	private async handleQueue(): Promise<void> {
+		if (this.isStartedQueue) return;
 		this.isStartedQueue = true;
 
 		let queueDeferred = this.createDeferred();
 
 		let isPreviouslyPaused = true;
-		while (this.currentConcurrencyIndex < this.options.maxConcurrency) {
+		while (true) {
 			if (this.isPaused) {
 				this.emit(EEvents.paused, this);
 				await this.startDeferred.promise;
 				this.startDeferred = this.createDeferred();
 				isPreviouslyPaused = true;
-				continue;
 			}
 
 			if (!this.queue.length) {
@@ -204,8 +203,9 @@ export default class AsyncBatch<T> {
 				this.emit(EEvents.waitingNewDatas, this);
 				await this.waitingDatasDeferred.promise;
 				this.waitingDatasDeferred = this.createDeferred();
-				continue;
 			}
+
+			this._isWaitingNewDatas = false;
 
 			/**
 			 * Emit start only once after pause
@@ -215,7 +215,6 @@ export default class AsyncBatch<T> {
 				this.emit(EEvents.started, this);
 			}
 
-			this._isWaitingNewDatas = false;
 			const data = this.queue.shift() as T;
 			this.emit(EEvents.eachStarted, { data });
 
@@ -237,8 +236,6 @@ export default class AsyncBatch<T> {
 				queueDeferred = this.createDeferred();
 			}
 		}
-
-		return this;
 	}
 
 	private async callAction(data: T): Promise<unknown> {
