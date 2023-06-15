@@ -1,6 +1,6 @@
 {
   "name": "@smart-massi/asyncbatch",
-  "version": "1.0.13",
+  "version": "1.0.91",
   "description": "Asynchronously process task batches",
   "main": "lib/main.js",
   "types": "lib/main.d.ts",
