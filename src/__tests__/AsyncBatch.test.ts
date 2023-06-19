@@ -1,23 +1,19 @@
 import AsyncBatch from "../AsyncBatch";
 test("Instance of AsyncBatch", async () => {
 	return new Promise((resolve) => {
-		const asyncBatch = AsyncBatch.create(
-			Array.from({ length: 7 }, (_, i) => i),
-			(d) => {
-				console.log(d);
-			},
-			{ maxConcurrency: 3, autoStart: true },
-		)
-			.onWaitingNewDatas(() => {
-				console.log("onWaitingNewDatas");
-				resolve(true);
-			})
-			.onEachStarted((event) => {
-				console.log("onEachStarted", event.data);
-			})
-			.onStarted((a) => {
-				console.log("onStarted", a);
-			});
+		const datas = Array.from({ length: 7 }, (_, i) => i);
+		const asyncBatch = AsyncBatch.create(datas, (data) => console.log(data), { maxConcurrency: 3, autoStart: true });
+		asyncBatch.events.onEachStarted((event) => {
+			console.log("onEachStarted", event.data);
+		});
+		asyncBatch.events.onStarted((a) => {
+			console.log("onStarted", a);
+		});
+		asyncBatch.events.onEmpty(() => {
+			console.log("onWaitingNewDatas");
+			asyncBatch.destruct();
+			resolve(true);
+		});
 		expect(asyncBatch).toBeInstanceOf(AsyncBatch);
 	});
 }, 30000);

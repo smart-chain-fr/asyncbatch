@@ -7,7 +7,7 @@ enum EEvents {
 	started = "started",
 	paused = "paused",
 	waitingNewDatas = "waitingNewDatas",
-	destruct = "destruct",
+	willDestruct = "willDestruct",
 }
 
 export default EEvents;
