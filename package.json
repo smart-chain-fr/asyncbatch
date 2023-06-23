@@ -1,6 +1,6 @@
 {
   "name": "@smart-massi/asyncbatch",
-  "version": "1.0.11",
+  "version": "1.0.2",
   "description": "Asynchronously process task batches",
   "main": "lib/main.js",
   "types": "lib/main.d.ts",
@@ -10,6 +10,7 @@
     "version": "npm run format && git add -A src",
     "postversion": "git push && git push --tags",
     "start": "node ./lib/main.js",
+    "example-start-basic": "node ./lib/examples/basic.js",
     "build": "tsc",
     "dev": "tsc && npm run start",
     "format": "prettier --write \"src/**/*.ts\"",

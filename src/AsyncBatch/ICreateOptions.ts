@@ -16,6 +16,12 @@ type ICreateOptions = {
 	 * @default true
 	 */
 	autoDestruct: boolean;
+
+	/**
+	 * @description Configure the Rate Limit in a Specified Time Range
+	 * @default null
+	 */
+	rateLimit: { msTimeRange: number; maxCalls: number } | null;
 };
 
 export default ICreateOptions;

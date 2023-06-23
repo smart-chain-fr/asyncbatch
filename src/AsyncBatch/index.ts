@@ -1,15 +1,17 @@
 import ICreateOptions from "./ICreateOptions";
 import EEvents from "./EEvents";
 import Deferred from "promise-deferred";
-import Events, { TArgEvent } from "./Events";
+import Events from "./Events";
 import Emitter from "./Emitter";
+import EventObject from "./EventObject";
 /**
+ * @todo Add timeout by action, or maybe by batch
+ * @todo Max maxRate
  * @example
  * const datas = [1, 2, 3];
  * const asyncBatch = AsyncBatch.create(datas, action, { maxConcurrency: 4, autoStart: false, autoDestruct: false })
  * .add(4, 5, 6).add([7, 8]).addMany([10, 11])
  * .updateAction(async (data)=>{ console.log(data);})
- * .filter((data)=> data > 1)
  * .updateMaxConcurrency(3)
  * .start().clear().destruct();
  *
@@ -31,10 +33,10 @@ export default class AsyncBatch<T> {
 	private _isDestructed = false;
 	private _isStarted = false;
 	private _isWaitingNewDatas = false;
+	private currentConcurrency: number = 0;
 	private waitingDatasDeferred = this.createDeferred();
 	private startDeferred = this.createDeferred();
-	private isStartedQueue: boolean = false;
-	private currentConcurrency: number = 0;
+	private filter: ((data: T) => boolean) | ((data: T) => Promise<boolean>) | null = null;
 
 	private readonly queue: T[] = [];
 	private readonly options: ICreateOptions;
@@ -47,14 +49,15 @@ export default class AsyncBatch<T> {
 			autoStart: options.autoStart ?? false,
 			maxConcurrency: options.maxConcurrency ?? 4,
 			autoDestruct: options.autoDestruct ?? true,
+			rateLimit: options.rateLimit ?? null,
 		};
 
 		this._isStarted = this.options.autoStart;
 
-		this.handleAutoDestruction();
+		this.handleAutoDestruction(this.options.autoDestruct);
 	}
 
-	public static create<T>(datas: T[], action: (data: T) => unknown, options: Partial<ICreateOptions>): AsyncBatch<T> {
+	public static create<T>(datas: T[], action: (data: T) => unknown, options: Partial<ICreateOptions> = {}): AsyncBatch<T> {
 		const asyncBatch = new this(action, options).addMany([...datas]);
 		setImmediate(() => asyncBatch.handleQueue());
 		return asyncBatch;
@@ -78,11 +81,7 @@ export default class AsyncBatch<T> {
 		return this;
 	}
 
-	public filter(): AsyncBatch<T> {
-		return this;
-	}
-
-	public updateAction(action: NonNullable<AsyncBatch<T>["action"]>): AsyncBatch<T> {
+	public updateAction(action: NonNullable<typeof this.action>): AsyncBatch<T> {
 		this.action = action;
 		return this;
 	}
@@ -110,18 +109,15 @@ export default class AsyncBatch<T> {
 	public start(): AsyncBatch<T> {
 		if (this._isStarted) return this;
 		this._isStarted = true;
-		this.startDeferred.resolve(undefined);
-		this.startDeferred = this.createDeferred();
-		this.emit(EEvents.started, {
-			ctx: this,
-		});
+		//this.startDeferred.resolve(undefined);
+		setImmediate(() => this.startDeferred.resolve(undefined));
 		return this;
 	}
 
 	/**
 	 * @alias !start
 	 */
-	public pause(): AsyncBatch<T> {
+	public requestPause(): AsyncBatch<T> {
 		if (!this._isStarted) return this;
 		this._isStarted = false;
 		return this;
@@ -131,7 +127,11 @@ export default class AsyncBatch<T> {
 	 * @alias pause
 	 */
 	public stop(): AsyncBatch<T> {
-		return this.pause();
+		return this.requestPause();
+	}
+
+	public getCurrentConcurrency(): number {
+		return this.currentConcurrency;
 	}
 
 	public updateMaxConcurrency(maxConcurrency: number): AsyncBatch<T> {
@@ -139,19 +139,30 @@ export default class AsyncBatch<T> {
 		return this;
 	}
 
+	public setFilter(filter: typeof this.filter): AsyncBatch<T> {
+		this.filter = filter;
+		return this;
+	}
+
 	public clear(): AsyncBatch<T> {
+		const eventWillCleared = new EventObject(this, EEvents.willCleared, undefined, undefined, undefined, true);
+		this.emit(EEvents.willCleared, eventWillCleared);
+
+		if (eventWillCleared.preventedAction === true) return this;
+
 		this.queue.splice(0);
-		this.emit(EEvents.cleared, {
-			ctx: this,
-		});
+
+		const eventOnCleared = new EventObject(this, EEvents.cleared);
+		this.emit(EEvents.cleared, eventOnCleared);
 		return this;
 	}
 
 	public destruct(): void {
 		if (this._isDestructed) return;
-		this.emit(EEvents.willDestruct, {
-			ctx: this,
-		});
+		const eventObject = new EventObject(this, EEvents.willDestruct, undefined, undefined, undefined, true);
+		this.emit(EEvents.willDestruct, eventObject);
+
+		if (eventObject.preventedAction === true) return;
 
 		this.stop();
 		this.clear();
@@ -159,89 +170,168 @@ export default class AsyncBatch<T> {
 		this._isDestructed = true;
 	}
 
-	private emit(eventName: EEvents, data: TArgEvent<AsyncBatch<T> | T>): void {
+	private emit(eventName: EEvents, data: EventObject<AsyncBatch<T> | T>): void {
 		this.emitter.emit(eventName, data);
 	}
 
 	private async handleQueue(): Promise<void> {
-		if (this.isStartedQueue) return;
-		this.isStartedQueue = true;
+		let isPausedInit = true;
+		let defferedQueue = this.createDeferred();
+		let isAlreadyPaused = false;
 
-		let queueDeferred = this.createDeferred();
+		/**
+		 * @description terminate each loop step to let the next one start
+		 */
+		const endLoopStep = (data: T, responseStored: unknown, errorStored: string | Error | undefined) => {
+			this.currentConcurrency--;
+			this.emit(EEvents.eachEnded, new EventObject(this, EEvents.eachEnded, data, responseStored, errorStored));
+			defferedQueue.resolve(undefined);
+			defferedQueue = this.createDeferred();
+			this.mayEmitWaitingDatas(this.currentConcurrency);
+		};
 
-		let isPreviouslyPaused = true;
-		while (true) {
-			if (this.isPaused) {
-				this.emit(EEvents.paused, { ctx: this });
-				await this.startDeferred.promise;
-				this.startDeferred = this.createDeferred();
-				isPreviouslyPaused = true;
-			}
-
-			if (!this.queue.length) {
-				this._isWaitingNewDatas = true;
-				if (!this.currentConcurrency) this.emit(EEvents.waitingNewDatas, { ctx: this });
-				await this.waitingDatasDeferred.promise;
-				this.waitingDatasDeferred = this.createDeferred();
-			}
-
-			this._isWaitingNewDatas = false;
-
-			/**
-			 * Emit start only once after pause
-			 */
-			if (this.isStarted && isPreviouslyPaused) {
-				isPreviouslyPaused = false;
-				this.emit(EEvents.started, { ctx: this });
-			}
-
+		/**
+		 * @description Loop on the queue and call the action on each data
+		 */
+		const loopOnConcurrency = async (): Promise<void> => {
 			const data = this.queue.shift() as T;
-			this.emit(EEvents.eachStarted, { ctx: this, data });
-
 			this.currentConcurrency++;
 
-			const actionPromised = this.callAction(data);
-			const evtResponse: TArgEvent<AsyncBatch<T> | T> = { ctx: this, data };
+			let responseStored: unknown = undefined;
+			let errorStored: string | Error | undefined = undefined;
 
-			actionPromised
-				.then((response) => {
-					this.emit(EEvents.eachSuccessed, { ...Object.assign(evtResponse, { response }) });
-				})
-				.catch((error) => {
-					this.emit(EEvents.eachErrored, { ...Object.assign(evtResponse, { error }) });
-				})
-				.finally(() => {
-					this.emit(EEvents.eachEnded, { ...evtResponse });
-					if (this.currentConcurrency === this.options.maxConcurrency) {
-						this.currentConcurrency--;
-						queueDeferred.resolve(undefined);
-						return;
-					}
-					this.currentConcurrency--;
+			if (!(await this.shouldPreserveData(data))) return endLoopStep(data, responseStored, errorStored);
+			if (!this.emitEachStarted(data)) return endLoopStep(data, responseStored, errorStored);
 
-					if (this._isWaitingNewDatas) {
-						this.emit(EEvents.waitingNewDatas, { ctx: this });
-					}
-				});
+			let eventObject: EventObject<this, T, unknown>;
+
+			try {
+				responseStored = await this.callAction(data);
+				eventObject = new EventObject(this, EEvents.eachSuccessed, data, responseStored, errorStored);
+			} catch (error) {
+				errorStored = error as string | Error;
+				eventObject = new EventObject(this, EEvents.eachErrored, data, responseStored, errorStored);
+			}
+
+			this.emit(eventObject.type, eventObject);
+			endLoopStep(data, responseStored, errorStored);
+			return;
+		};
+
+		while (true) {
+			let isPreviouslyPaused = await this.forPause(isAlreadyPaused, (willPause) => {
+				isAlreadyPaused = willPause;
+			});
+
+			await this.forWaitingNewDatas(this.currentConcurrency);
+
+			if (isPreviouslyPaused || isPausedInit) {
+				isAlreadyPaused = false;
+				this.mayEmitFirstStart();
+				isPreviouslyPaused = false;
+				isPausedInit = false;
+			}
+
+			loopOnConcurrency();
 
 			if (this.currentConcurrency === this.options.maxConcurrency) {
-				await queueDeferred.promise;
-				queueDeferred = this.createDeferred();
+				await defferedQueue.promise;
+				defferedQueue = this.createDeferred();
 			}
 		}
 	}
 
+	/**
+	 * @description Handle the pause of the queue
+	 */
+	private async forPause(isAlreadyPaused: boolean, willPause: (willPause: boolean) => void): Promise<boolean> {
+		if (!this.isPaused) return this.isPaused;
+		const eventPausedObject = new EventObject(this, EEvents.paused);
+		if (!isAlreadyPaused) {
+			this.emit(EEvents.paused, eventPausedObject);
+		}
+		willPause(true);
+		await this.startDeferred.promise;
+		if (!isAlreadyPaused) {
+			this.startDeferred = this.createDeferred();
+		}
+		return !this.isPaused;
+	}
+
+	/**
+	 * @description Emit event when the queue is waiting for datas
+	 */
+	private mayEmitWaitingDatas(currentConcurrency: number): boolean {
+		if (currentConcurrency !== 0 || !this._isWaitingNewDatas) return false;
+		this.emit(EEvents.waitingNewDatas, new EventObject(this, EEvents.waitingNewDatas));
+		return true;
+	}
+
+	/**
+	 * @description Handle the waiting of new datas
+	 */
+	private async forWaitingNewDatas(currentConcurrency: number): Promise<boolean> {
+		if (this.queue.length === 0) {
+			this._isWaitingNewDatas = true;
+			const eventWaitingNewDatasObject = new EventObject(this, EEvents.waitingNewDatas);
+			if (currentConcurrency === 0) this.emit(EEvents.waitingNewDatas, eventWaitingNewDatasObject);
+			await this.waitingDatasDeferred.promise;
+			this.waitingDatasDeferred = this.createDeferred();
+			return true;
+		}
+
+		this._isWaitingNewDatas = false;
+		return false;
+	}
+
+	/**
+	 * @description Emit start only once after pause
+	 */
+	private mayEmitFirstStart() {
+		const eventStartedObject = new EventObject(this, EEvents.started);
+		this.emit(EEvents.started, eventStartedObject);
+	}
+
+	/**
+	 * @description Emit event for each started data
+	 */
+	private emitEachStarted(data: T): boolean {
+		const eachStartedObject = new EventObject(this, EEvents.eachStarted, data, undefined, undefined, true);
+		this.emit(EEvents.eachStarted, eachStartedObject);
+		return !eachStartedObject.preventedAction;
+	}
+
+	/**
+	 * @description Call the action with the data
+	 */
 	private async callAction(data: T): Promise<unknown> {
 		return await this.action(data);
 	}
 
+	/**
+	 * @description Check if the data should be preserved when the filter is executed
+	 */
+	private async shouldPreserveData(data: T): Promise<boolean> {
+		try {
+			return (await this.filter?.(data)) ?? true;
+		} catch (error) {
+			return false;
+		}
+	}
+
+	/**
+	 * @description Create a deferred promise
+	 */
 	private createDeferred(): Deferred.Deferred<undefined> {
 		return new Deferred<undefined>();
 	}
 
-	private handleAutoDestruction() {
+	/**
+	 * @description Handle the auto destruction of the queue
+	 */
+	private handleAutoDestruction(autoDestruct: boolean) {
 		this.events.onWaitingNewDatas(() => {
-			if (this.options.autoDestruct) this.destruct();
+			if (autoDestruct) this.destruct();
 		});
 	}
 }

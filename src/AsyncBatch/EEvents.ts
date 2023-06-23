@@ -4,6 +4,7 @@ enum EEvents {
 	eachSuccessed = "eachSuccessed",
 	eachErrored = "eachErrored",
 	cleared = "cleared",
+	willCleared = "willCleared",
 	started = "started",
 	paused = "paused",
 	waitingNewDatas = "waitingNewDatas",
