@@ -1,8 +1,8 @@
 enum EEvents {
-	eachStarted = "eachStarted",
-	eachEnded = "eachEnded",
-	eachSuccessed = "eachSuccessed",
-	eachErrored = "eachErrored",
+	processingStarted = "processingStarted",
+	processingEnded = "processingEnded",
+	processingSuccessed = "processingSuccessed",
+	processingErrored = "processingErrored",
 	cleared = "cleared",
 	willCleared = "willCleared",
 	started = "started",

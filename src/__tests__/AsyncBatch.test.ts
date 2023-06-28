@@ -3,8 +3,8 @@ test("Instance of AsyncBatch", async () => {
 	return new Promise((resolve) => {
 		const datas = Array.from({ length: 7 }, (_, i) => i);
 		const asyncBatch = AsyncBatch.create(datas, (data) => console.log(data), { maxConcurrency: 3, autoStart: true });
-		asyncBatch.events.onEachStarted((event) => {
-			console.log("onEachStarted", event.data);
+		asyncBatch.events.onProcessingStarted((event) => {
+			console.log("onProcessingStarted", event.data);
 		});
 		asyncBatch.events.onStarted((a) => {
 			console.log("onStarted", a);

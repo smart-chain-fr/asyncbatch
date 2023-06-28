@@ -12,27 +12,27 @@ type TRemoveEvent = () => void;
  */
 export default class Events<TCtx, TData> {
 	public constructor(public emitter: Emitter) {}
-	public onEachStarted(listener: (event: EventObject<TCtx, TData>) => unknown): TRemoveEvent {
-		return this.on(EEvents.eachStarted, listener);
+	public onProcessingStart(listener: (event: EventObject<TCtx, TData>) => unknown): TRemoveEvent {
+		return this.on(EEvents.processingStarted, listener);
 	}
 
 	// @TODO: change data type of some events to add more informations
-	public onEachEnded(listener: (event: EventObject<TCtx, TData>) => unknown): TRemoveEvent {
-		return this.on(EEvents.eachEnded, listener);
+	public onProcessingEnd(listener: (event: EventObject<TCtx, TData>) => unknown): TRemoveEvent {
+		return this.on(EEvents.processingEnded, listener);
 	}
 
 	/**
 	 * @description Triggered when the action is succeeds
 	 */
-	public onEachSuccess(listener: (event: EventObject<TCtx, TData>) => unknown): TRemoveEvent {
-		return this.on(EEvents.eachSuccessed, listener);
+	public onProcessingSuccess(listener: (event: EventObject<TCtx, TData>) => unknown): TRemoveEvent {
+		return this.on(EEvents.processingSuccessed, listener);
 	}
 
 	/**
 	 * @description Triggered when an error is thrown in the action
 	 */
-	public onEachErrored(listener: (event: EventObject<TCtx, TData>) => unknown): TRemoveEvent {
-		return this.on(EEvents.eachErrored, listener);
+	public onProcessingError(listener: (event: EventObject<TCtx, TData>) => unknown): TRemoveEvent {
+		return this.on(EEvents.processingErrored, listener);
 	}
 
 	/**

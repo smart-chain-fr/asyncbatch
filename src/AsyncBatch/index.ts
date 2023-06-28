@@ -4,30 +4,11 @@ import Deferred from "promise-deferred";
 import Events from "./Events";
 import Emitter from "./Emitter";
 import EventObject from "./EventObject";
+import Countdown from "./Countdown";
+
 /**
  * @todo Add timeout by action, or maybe by batch
- * @todo Max maxRate
- * @example
- * const datas = [1, 2, 3];
- * const asyncBatch = AsyncBatch.create(datas, action, { maxConcurrency: 4, autoStart: false, autoDestruct: false })
- * .add(4, 5, 6).add([7, 8]).addMany([10, 11])
- * .updateAction(async (data)=>{ console.log(data);})
- * .updateMaxConcurrency(3)
- * .start().clear().destruct();
- *
- * const removeOnEachStarted = asyncBatch.onEachStarted((event) => {});
- * removeOnEachStarted();
- * asyncBatch.onEachEnded((event) => {});
- * asyncBatch.onEachSuccessed((event) => {});
- * asyncBatch.onEachErrored((event) => {});
- * asyncBatch.onCleared((event)=>{});
- * asyncBatch.onStarted((event)=>{});
- * asyncBatch.onWaitingNewDatas((event)=>{});
- * asyncBatch.on("EventName", (event) => {});
- * asyncBatch.onDestruct((event) => {});
- *
- * setTimeout(() => asyncBatch.pause(), 3000); // Alias of stop
- * setTimeout(() => asyncBatch.stop(), 4000);
+ * @example /src/examples/basic.ts
  */
 export default class AsyncBatch<T> {
 	private _isDestructed = false;
@@ -109,7 +90,6 @@ export default class AsyncBatch<T> {
 	public start(): AsyncBatch<T> {
 		if (this._isStarted) return this;
 		this._isStarted = true;
-		//this.startDeferred.resolve(undefined);
 		setImmediate(() => this.startDeferred.resolve(undefined));
 		return this;
 	}
@@ -178,13 +158,14 @@ export default class AsyncBatch<T> {
 		let isPausedInit = true;
 		let defferedQueue = this.createDeferred();
 		let isAlreadyPaused = false;
-
+		const countdown = Countdown.new(this.options.rateLimit?.msTimeRange ?? 0);
+		let callNumber = 0;
 		/**
 		 * @description terminate each loop step to let the next one start
 		 */
 		const endLoopStep = (data: T, responseStored: unknown, errorStored: string | Error | undefined) => {
 			this.currentConcurrency--;
-			this.emit(EEvents.eachEnded, new EventObject(this, EEvents.eachEnded, data, responseStored, errorStored));
+			this.emit(EEvents.processingEnded, new EventObject(this, EEvents.processingEnded, data, responseStored, errorStored));
 			defferedQueue.resolve(undefined);
 			defferedQueue = this.createDeferred();
 			this.mayEmitWaitingDatas(this.currentConcurrency);
@@ -195,7 +176,6 @@ export default class AsyncBatch<T> {
 		 */
 		const loopOnConcurrency = async (): Promise<void> => {
 			const data = this.queue.shift() as T;
-			this.currentConcurrency++;
 
 			let responseStored: unknown = undefined;
 			let errorStored: string | Error | undefined = undefined;
@@ -207,10 +187,10 @@ export default class AsyncBatch<T> {
 
 			try {
 				responseStored = await this.callAction(data);
-				eventObject = new EventObject(this, EEvents.eachSuccessed, data, responseStored, errorStored);
+				eventObject = new EventObject(this, EEvents.processingSuccessed, data, responseStored, errorStored);
 			} catch (error) {
 				errorStored = error as string | Error;
-				eventObject = new EventObject(this, EEvents.eachErrored, data, responseStored, errorStored);
+				eventObject = new EventObject(this, EEvents.processingErrored, data, responseStored, errorStored);
 			}
 
 			this.emit(eventObject.type, eventObject);
@@ -231,6 +211,19 @@ export default class AsyncBatch<T> {
 				isPreviouslyPaused = false;
 				isPausedInit = false;
 			}
+
+			countdown.start();
+			this.currentConcurrency++;
+			let isMaxCalls = callNumber >= (this.options.rateLimit?.maxCalls ?? 0);
+			if (isMaxCalls && countdown.willWait()) {
+				this.currentConcurrency--;
+				await countdown.wait();
+				countdown.reload();
+				callNumber = 0;
+				continue;
+			}
+
+			callNumber++;
 
 			loopOnConcurrency();
 
@@ -296,8 +289,8 @@ export default class AsyncBatch<T> {
 	 * @description Emit event for each started data
 	 */
 	private emitEachStarted(data: T): boolean {
-		const eachStartedObject = new EventObject(this, EEvents.eachStarted, data, undefined, undefined, true);
-		this.emit(EEvents.eachStarted, eachStartedObject);
+		const eachStartedObject = new EventObject(this, EEvents.processingStarted, data, undefined, undefined, true);
+		this.emit(EEvents.processingStarted, eachStartedObject);
 		return !eachStartedObject.preventedAction;
 	}
 
