@@ -17,11 +17,11 @@ const asyncBatch = AsyncBatch.create(datas, simpleAction, { maxConcurrency: 4, r
 	.start();
 
 asyncBatch.events.onStarted(() => {
-	console.log("started");
+	console.log(asyncBatch.events.EventsEnum.STARTED);
 });
 
 asyncBatch.events.onPaused(() => {
-	console.log("paused");
+	console.log(asyncBatch.events.EventsEnum.PAUSED);
 });
 
 asyncBatch.events.onProcessingStart((event) => {

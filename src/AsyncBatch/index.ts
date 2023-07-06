@@ -125,22 +125,22 @@ export default class AsyncBatch<T> {
 	}
 
 	public clear(): AsyncBatch<T> {
-		const eventWillCleared = new EventObject(this, EEvents.willCleared, undefined, undefined, undefined, true);
-		this.emit(EEvents.willCleared, eventWillCleared);
+		const eventWillCleared = new EventObject(this, EEvents.WILL_CLEARED, undefined, undefined, undefined, true);
+		this.emit(EEvents.WILL_CLEARED, eventWillCleared);
 
 		if (eventWillCleared.preventedAction === true) return this;
 
 		this.queue.splice(0);
 
-		const eventOnCleared = new EventObject(this, EEvents.cleared);
-		this.emit(EEvents.cleared, eventOnCleared);
+		const eventOnCleared = new EventObject(this, EEvents.CLEARED);
+		this.emit(EEvents.CLEARED, eventOnCleared);
 		return this;
 	}
 
 	public destruct(): void {
 		if (this._isDestructed) return;
-		const eventObject = new EventObject(this, EEvents.willDestruct, undefined, undefined, undefined, true);
-		this.emit(EEvents.willDestruct, eventObject);
+		const eventObject = new EventObject(this, EEvents.WILL_DESTRUCT, undefined, undefined, undefined, true);
+		this.emit(EEvents.WILL_DESTRUCT, eventObject);
 
 		if (eventObject.preventedAction === true) return;
 
@@ -165,7 +165,7 @@ export default class AsyncBatch<T> {
 		 */
 		const endLoopStep = (data: T, responseStored: unknown, errorStored: string | Error | undefined) => {
 			this.currentConcurrency--;
-			this.emit(EEvents.processingEnded, new EventObject(this, EEvents.processingEnded, data, responseStored, errorStored));
+			this.emit(EEvents.PROCESSING_ENDED, new EventObject(this, EEvents.PROCESSING_ENDED, data, responseStored, errorStored));
 			defferedQueue.resolve(undefined);
 			defferedQueue = this.createDeferred();
 			this.mayEmitWaitingDatas(this.currentConcurrency);
@@ -187,10 +187,10 @@ export default class AsyncBatch<T> {
 
 			try {
 				responseStored = await this.callAction(data);
-				eventObject = new EventObject(this, EEvents.processingSuccessed, data, responseStored, errorStored);
+				eventObject = new EventObject(this, EEvents.PROCESSING_SUCCESSED, data, responseStored, errorStored);
 			} catch (error) {
 				errorStored = error as string | Error;
-				eventObject = new EventObject(this, EEvents.processingErrored, data, responseStored, errorStored);
+				eventObject = new EventObject(this, EEvents.PROCESSING_ERRORED, data, responseStored, errorStored);
 			}
 
 			this.emit(eventObject.type, eventObject);
@@ -239,9 +239,9 @@ export default class AsyncBatch<T> {
 	 */
 	private async forPause(isAlreadyPaused: boolean, willPause: (willPause: boolean) => void): Promise<boolean> {
 		if (!this.isPaused) return this.isPaused;
-		const eventPausedObject = new EventObject(this, EEvents.paused);
+		const eventPausedObject = new EventObject(this, EEvents.PAUSED);
 		if (!isAlreadyPaused) {
-			this.emit(EEvents.paused, eventPausedObject);
+			this.emit(EEvents.PAUSED, eventPausedObject);
 		}
 		willPause(true);
 		await this.startDeferred.promise;
@@ -256,7 +256,7 @@ export default class AsyncBatch<T> {
 	 */
 	private mayEmitWaitingDatas(currentConcurrency: number): boolean {
 		if (currentConcurrency !== 0 || !this._isWaitingNewDatas) return false;
-		this.emit(EEvents.waitingNewDatas, new EventObject(this, EEvents.waitingNewDatas));
+		this.emit(EEvents.WAITING_NEW_DATAS, new EventObject(this, EEvents.WAITING_NEW_DATAS));
 		return true;
 	}
 
@@ -266,8 +266,8 @@ export default class AsyncBatch<T> {
 	private async forWaitingNewDatas(currentConcurrency: number): Promise<boolean> {
 		if (this.queue.length === 0) {
 			this._isWaitingNewDatas = true;
-			const eventWaitingNewDatasObject = new EventObject(this, EEvents.waitingNewDatas);
-			if (currentConcurrency === 0) this.emit(EEvents.waitingNewDatas, eventWaitingNewDatasObject);
+			const eventWaitingNewDatasObject = new EventObject(this, EEvents.WAITING_NEW_DATAS);
+			if (currentConcurrency === 0) this.emit(EEvents.WAITING_NEW_DATAS, eventWaitingNewDatasObject);
 			await this.waitingDatasDeferred.promise;
 			this.waitingDatasDeferred = this.createDeferred();
 			return true;
@@ -281,16 +281,16 @@ export default class AsyncBatch<T> {
 	 * @description Emit start only once after pause
 	 */
 	private mayEmitFirstStart() {
-		const eventStartedObject = new EventObject(this, EEvents.started);
-		this.emit(EEvents.started, eventStartedObject);
+		const eventStartedObject = new EventObject(this, EEvents.STARTED);
+		this.emit(EEvents.STARTED, eventStartedObject);
 	}
 
 	/**
 	 * @description Emit event for each started data
 	 */
 	private emitEachStarted(data: T): boolean {
-		const eachStartedObject = new EventObject(this, EEvents.processingStarted, data, undefined, undefined, true);
-		this.emit(EEvents.processingStarted, eachStartedObject);
+		const eachStartedObject = new EventObject(this, EEvents.PROCESSING_STARTED, data, undefined, undefined, true);
+		this.emit(EEvents.PROCESSING_STARTED, eachStartedObject);
 		return !eachStartedObject.preventedAction;
 	}
 

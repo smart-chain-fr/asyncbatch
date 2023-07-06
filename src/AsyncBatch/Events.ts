@@ -11,63 +11,65 @@ type TRemoveEvent = () => void;
  * @description Events of AsyncBatch
  */
 export default class Events<TCtx, TData> {
+	public static EventsEnum = EEvents;
+	public EventsEnum = EEvents;
 	public constructor(public emitter: Emitter) {}
 	public onProcessingStart(listener: (event: EventObject<TCtx, TData>) => unknown): TRemoveEvent {
-		return this.on(EEvents.processingStarted, listener);
+		return this.on(EEvents.PROCESSING_STARTED, listener);
 	}
 
 	// @TODO: change data type of some events to add more informations
 	public onProcessingEnd(listener: (event: EventObject<TCtx, TData>) => unknown): TRemoveEvent {
-		return this.on(EEvents.processingEnded, listener);
+		return this.on(EEvents.PROCESSING_ENDED, listener);
 	}
 
 	/**
 	 * @description Triggered when the action is succeeds
 	 */
 	public onProcessingSuccess(listener: (event: EventObject<TCtx, TData>) => unknown): TRemoveEvent {
-		return this.on(EEvents.processingSuccessed, listener);
+		return this.on(EEvents.PROCESSING_SUCCESSED, listener);
 	}
 
 	/**
 	 * @description Triggered when an error is thrown in the action
 	 */
 	public onProcessingError(listener: (event: EventObject<TCtx, TData>) => unknown): TRemoveEvent {
-		return this.on(EEvents.processingErrored, listener);
+		return this.on(EEvents.PROCESSING_ERRORED, listener);
 	}
 
 	/**
 	 * @description Triggered when the AsyncBatch will cleared
 	 */
 	public willCleared(listener: (event: EventObject<TCtx>) => unknown): TRemoveEvent {
-		return this.on(EEvents.willCleared, listener);
+		return this.on(EEvents.WILL_CLEARED, listener);
 	}
 
 	/**
 	 * @description Triggered when the AsyncBatch is cleared
 	 */
 	public onCleared(listener: (event: EventObject<TCtx>) => unknown): TRemoveEvent {
-		return this.on(EEvents.cleared, listener);
+		return this.on(EEvents.CLEARED, listener);
 	}
 
 	/**
 	 * @description Triggered when the AsyncBatch is started
 	 */
 	public onStarted(listener: (event: EventObject<TCtx>) => unknown): TRemoveEvent {
-		return this.on(EEvents.started, listener);
+		return this.on(EEvents.STARTED, listener);
 	}
 
 	/**
 	 * @description Triggered when the AsyncBatch is paused
 	 */
 	public onPaused(listener: (event: EventObject<TCtx>) => unknown): TRemoveEvent {
-		return this.on(EEvents.paused, listener);
+		return this.on(EEvents.PAUSED, listener);
 	}
 
 	/**
 	 * @description Triggered when the queue is empty and the AsyncBatch is waiting for new datas
 	 */
 	public onWaitingNewDatas(listener: (event: EventObject<TCtx>) => unknown): TRemoveEvent {
-		return this.on(EEvents.waitingNewDatas, listener);
+		return this.on(EEvents.WAITING_NEW_DATAS, listener);
 	}
 
 	/**
@@ -78,7 +80,7 @@ export default class Events<TCtx, TData> {
 	}
 
 	public willDestruct(listener: (event: EventObject<TCtx>) => unknown): TRemoveEvent {
-		return this.on(EEvents.willDestruct, listener);
+		return this.on(EEvents.WILL_DESTRUCT, listener);
 	}
 
 	public on<TEvt>(eventName: EEvents, listener: (event: TEvt) => unknown): TRemoveEvent {

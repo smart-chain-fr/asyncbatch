@@ -1,14 +1,14 @@
 enum EEvents {
-	processingStarted = "processingStarted",
-	processingEnded = "processingEnded",
-	processingSuccessed = "processingSuccessed",
-	processingErrored = "processingErrored",
-	cleared = "cleared",
-	willCleared = "willCleared",
-	started = "started",
-	paused = "paused",
-	waitingNewDatas = "waitingNewDatas",
-	willDestruct = "willDestruct",
+	PROCESSING_STARTED = "PROCESSING_STARTED",
+	PROCESSING_ENDED = "PROCESSING_ENDED",
+	PROCESSING_SUCCESSED = "PROCESSING_SUCCESSED",
+	PROCESSING_ERRORED = "PROCESSING_ERRORED",
+	CLEARED = "CLEARED",
+	WILL_CLEARED = "WILL_CLEARED",
+	STARTED = "STARTED",
+	PAUSED = "PAUSED",
+	WAITING_NEW_DATAS = "WAITING_NEW_DATAS",
+	WILL_DESTRUCT = "WILL_DESTRUCT",
 }
 
 export default EEvents;
