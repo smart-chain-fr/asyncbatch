@@ -156,7 +156,7 @@ export default class AsyncBatch<T> {
 
 	private async handleQueue(): Promise<void> {
 		let isPausedInit = true;
-		let defferedQueue = this.createDeferred();
+		let deferredQueue = this.createDeferred();
 		let isAlreadyPaused = false;
 		const countdown = Countdown.new(this.options.rateLimit?.msTimeRange ?? 0);
 		let callNumber = 0;
@@ -166,8 +166,8 @@ export default class AsyncBatch<T> {
 		const endLoopStep = (data: T, responseStored: unknown, errorStored: string | Error | undefined) => {
 			this.currentConcurrency--;
 			this.emit(EEvents.PROCESSING_ENDED, new EventObject(this, EEvents.PROCESSING_ENDED, data, responseStored, errorStored));
-			defferedQueue.resolve(undefined);
-			defferedQueue = this.createDeferred();
+			deferredQueue.resolve(undefined);
+			deferredQueue = this.createDeferred();
 			this.mayEmitWaitingDatas(this.currentConcurrency);
 		};
 
@@ -228,8 +228,8 @@ export default class AsyncBatch<T> {
 			loopOnConcurrency();
 
 			if (this.currentConcurrency === this.options.maxConcurrency) {
-				await defferedQueue.promise;
-				defferedQueue = this.createDeferred();
+				await deferredQueue.promise;
+				deferredQueue = this.createDeferred();
 			}
 		}
 	}
