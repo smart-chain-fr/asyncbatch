@@ -1,3 +1,1 @@
-import _AsyncBatch from "./AsyncBatch";
-
-export const AsyncBatch = _AsyncBatch;
+export { default as AsyncBatch } from "./AsyncBatch";
