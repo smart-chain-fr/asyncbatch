@@ -11,7 +11,6 @@ test("Instance of AsyncBatch", async () => {
 		});
 		asyncBatch.events.onEmpty(() => {
 			console.log("onWaitingNewDatas");
-			asyncBatch.destruct();
 			resolve(true);
 		});
 		expect(asyncBatch).toBeInstanceOf(AsyncBatch);

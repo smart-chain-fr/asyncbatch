@@ -8,7 +8,6 @@ enum EEvents {
 	STARTED = "STARTED",
 	PAUSED = "PAUSED",
 	WAITING_NEW_DATAS = "WAITING_NEW_DATAS",
-	WILL_DESTRUCT = "WILL_DESTRUCT",
 }
 
 export default EEvents;

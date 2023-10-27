@@ -10,30 +10,30 @@ type TRemoveEvent = () => void;
 /**
  * @description Events of AsyncBatch
  */
-export default class Events<TCtx, TData> {
+export default class Events<TCtx, TData, TRes = unknown> {
 	public static EventsEnum = EEvents;
 	public EventsEnum = EEvents;
 	public constructor(public emitter: Emitter) {}
-	public onProcessingStart(listener: (event: EventObject<TCtx, TData>) => unknown): TRemoveEvent {
+	public onProcessingStart(listener: (event: EventObject<TCtx, TData, TRes>) => unknown): TRemoveEvent {
 		return this.on(EEvents.PROCESSING_STARTED, listener);
 	}
 
 	// @TODO: change data type of some events to add more informations
-	public onProcessingEnd(listener: (event: EventObject<TCtx, TData>) => unknown): TRemoveEvent {
+	public onProcessingEnd(listener: (event: EventObject<TCtx, TData, TRes>) => unknown): TRemoveEvent {
 		return this.on(EEvents.PROCESSING_ENDED, listener);
 	}
 
 	/**
 	 * @description Triggered when the action is succeeds
 	 */
-	public onProcessingSuccess(listener: (event: EventObject<TCtx, TData>) => unknown): TRemoveEvent {
+	public onProcessingSuccess(listener: (event: EventObject<TCtx, TData, TRes>) => unknown): TRemoveEvent {
 		return this.on(EEvents.PROCESSING_SUCCESSED, listener);
 	}
 
 	/**
 	 * @description Triggered when an error is thrown in the action
 	 */
-	public onProcessingError(listener: (event: EventObject<TCtx, TData>) => unknown): TRemoveEvent {
+	public onProcessingError(listener: (event: EventObject<TCtx, TData, TRes>) => unknown): TRemoveEvent {
 		return this.on(EEvents.PROCESSING_ERRORED, listener);
 	}
 
@@ -77,10 +77,6 @@ export default class Events<TCtx, TData> {
 	 */
 	public onEmpty(listener: (event: EventObject<TCtx>) => unknown): TRemoveEvent {
 		return this.onWaitingNewDatas(listener);
-	}
-
-	public willDestruct(listener: (event: EventObject<TCtx>) => unknown): TRemoveEvent {
-		return this.on(EEvents.WILL_DESTRUCT, listener);
 	}
 
 	public on<TEvt>(eventName: EEvents, listener: (event: TEvt) => unknown): TRemoveEvent {

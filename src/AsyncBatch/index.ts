@@ -1,6 +1,6 @@
 import ICreateOptions from "./ICreateOptions";
 import EEvents from "./EEvents";
-import Deferred from "promise-deferred";
+import Deferred from "./PromiseDeferred";
 import Events from "./Events";
 import Emitter from "./Emitter";
 import EventObject from "./EventObject";
@@ -10,8 +10,7 @@ import Countdown from "./Countdown";
  * @todo Add timeout by action, or maybe by batch
  * @example /src/examples/basic.ts
  */
-export default class AsyncBatch<T> {
-	private _isDestructed = false;
+export default class AsyncBatch<T, R> {
 	private _isStarted = false;
 	private _isWaitingNewDatas = false;
 	private currentConcurrency: number = 0;
@@ -22,23 +21,20 @@ export default class AsyncBatch<T> {
 	private readonly queue: T[] = [];
 	private readonly options: ICreateOptions;
 	private readonly emitter = new Emitter();
-	private readonly _events: Events<AsyncBatch<T>, T>;
+	private readonly _events: Events<AsyncBatch<T, R>, T, R>;
 
-	private constructor(private action: (data: T) => unknown, options: Partial<ICreateOptions>) {
-		this._events = new Events<AsyncBatch<T>, T>(this.emitter);
+	private constructor(private action: (data: T) => R, options: Partial<ICreateOptions>) {
+		this._events = new Events<AsyncBatch<T, R>, T, R>(this.emitter);
 		this.options = {
 			autoStart: options.autoStart ?? false,
 			maxConcurrency: options.maxConcurrency ?? 4,
-			autoDestruct: options.autoDestruct ?? true,
 			rateLimit: options.rateLimit ?? null,
 		};
 
 		this._isStarted = this.options.autoStart;
-
-		this.handleAutoDestruction(this.options.autoDestruct);
 	}
 
-	public static create<T>(datas: T[], action: (data: T) => unknown, options: Partial<ICreateOptions> = {}): AsyncBatch<T> {
+	public static create<T, R>(datas: T[], action: (data: T) => R, options: Partial<ICreateOptions> = {}): AsyncBatch<T, R> {
 		const asyncBatch = new this(action, options).addMany([...datas]);
 		setImmediate(() => asyncBatch.handleQueue());
 		return asyncBatch;
@@ -46,7 +42,7 @@ export default class AsyncBatch<T> {
 
 	public add = (() => {
 		let clearImmediateId: ReturnType<typeof setImmediate>;
-		return (...data: T[]): AsyncBatch<T> => {
+		return (...data: T[]): AsyncBatch<T, R> => {
 			this.queue.push(...data);
 
 			if (this.isWaitingNewDatas) {
@@ -57,17 +53,17 @@ export default class AsyncBatch<T> {
 		};
 	})();
 
-	public addMany(datas: T[]): AsyncBatch<T> {
+	public addMany(datas: T[]): AsyncBatch<T, R> {
 		this.add(...datas);
 		return this;
 	}
 
-	public updateAction(action: NonNullable<typeof this.action>): AsyncBatch<T> {
+	public updateAction(action: NonNullable<typeof this.action>): AsyncBatch<T, R> {
 		this.action = action;
 		return this;
 	}
 
-	public get events(): Events<AsyncBatch<T>, T> {
+	public get events(): Events<AsyncBatch<T, R>, T, R> {
 		return this._events;
 	}
 
@@ -79,15 +75,11 @@ export default class AsyncBatch<T> {
 		return this._isStarted;
 	}
 
-	public get isDestructed(): boolean {
-		return this._isDestructed;
-	}
-
 	public get isWaitingNewDatas(): boolean {
 		return this._isWaitingNewDatas;
 	}
 
-	public start(): AsyncBatch<T> {
+	public start(): AsyncBatch<T, R> {
 		if (this._isStarted) return this;
 		this._isStarted = true;
 		setImmediate(() => this.startDeferred.resolve(undefined));
@@ -97,7 +89,7 @@ export default class AsyncBatch<T> {
 	/**
 	 * @alias !start
 	 */
-	public requestPause(): AsyncBatch<T> {
+	public requestPause(): AsyncBatch<T, R> {
 		if (!this._isStarted) return this;
 		this._isStarted = false;
 		return this;
@@ -106,7 +98,7 @@ export default class AsyncBatch<T> {
 	/**
 	 * @alias pause
 	 */
-	public stop(): AsyncBatch<T> {
+	public stop(): AsyncBatch<T, R> {
 		return this.requestPause();
 	}
 
@@ -114,17 +106,17 @@ export default class AsyncBatch<T> {
 		return this.currentConcurrency;
 	}
 
-	public updateMaxConcurrency(maxConcurrency: number): AsyncBatch<T> {
+	public updateMaxConcurrency(maxConcurrency: number): AsyncBatch<T, R> {
 		this.options.maxConcurrency = maxConcurrency;
 		return this;
 	}
 
-	public setFilter(filter: typeof this.filter): AsyncBatch<T> {
+	public setFilter(filter: typeof this.filter): AsyncBatch<T, R> {
 		this.filter = filter;
 		return this;
 	}
 
-	public clear(): AsyncBatch<T> {
+	public clear(): AsyncBatch<T, R> {
 		const eventWillCleared = new EventObject(this, EEvents.WILL_CLEARED, undefined, undefined, undefined, true);
 		this.emit(EEvents.WILL_CLEARED, eventWillCleared);
 
@@ -137,20 +129,7 @@ export default class AsyncBatch<T> {
 		return this;
 	}
 
-	public destruct(): void {
-		if (this._isDestructed) return;
-		const eventObject = new EventObject(this, EEvents.WILL_DESTRUCT, undefined, undefined, undefined, true);
-		this.emit(EEvents.WILL_DESTRUCT, eventObject);
-
-		if (eventObject.preventedAction === true) return;
-
-		this.stop();
-		this.clear();
-		this.events.removeAllListeners();
-		this._isDestructed = true;
-	}
-
-	private emit(eventName: EEvents, data: EventObject<AsyncBatch<T> | T>): void {
+	private emit(eventName: EEvents, data: EventObject<AsyncBatch<T, R> | T, T | unknown, R | unknown>): void {
 		this.emitter.emit(eventName, data);
 	}
 
@@ -163,7 +142,7 @@ export default class AsyncBatch<T> {
 		/**
 		 * @description terminate each loop step to let the next one start
 		 */
-		const endLoopStep = (data: T, responseStored: unknown, errorStored: string | Error | undefined) => {
+		const endLoopStep = (data: T, responseStored?: R, errorStored?: string | Error) => {
 			this.currentConcurrency--;
 			this.emit(EEvents.PROCESSING_ENDED, new EventObject(this, EEvents.PROCESSING_ENDED, data, responseStored, errorStored));
 			deferredQueue.resolve(undefined);
@@ -177,13 +156,13 @@ export default class AsyncBatch<T> {
 		const loopOnConcurrency = async (): Promise<void> => {
 			const data = this.queue.shift() as T;
 
-			let responseStored: unknown = undefined;
+			let responseStored: R | undefined = undefined;
 			let errorStored: string | Error | undefined = undefined;
 
-			if (!(await this.shouldPreserveData(data))) return endLoopStep(data, responseStored, errorStored);
-			if (!this.emitEachStarted(data)) return endLoopStep(data, responseStored, errorStored);
+			if (!(await this.shouldPreserveData(data))) return endLoopStep(data);
+			if (!this.emitEachStarted(data)) return endLoopStep(data);
 
-			let eventObject: EventObject<this, T, unknown>;
+			let eventObject: EventObject<this, T, R>;
 
 			try {
 				responseStored = await this.callAction(data);
@@ -297,7 +276,7 @@ export default class AsyncBatch<T> {
 	/**
 	 * @description Call the action with the data
 	 */
-	private async callAction(data: T): Promise<unknown> {
+	private async callAction(data: T): Promise<R> {
 		return await this.action(data);
 	}
 
@@ -315,16 +294,7 @@ export default class AsyncBatch<T> {
 	/**
 	 * @description Create a deferred promise
 	 */
-	private createDeferred(): Deferred.Deferred<undefined> {
+	private createDeferred(): Deferred<undefined> {
 		return new Deferred<undefined>();
-	}
-
-	/**
-	 * @description Handle the auto destruction of the queue
-	 */
-	private handleAutoDestruction(autoDestruct: boolean) {
-		this.events.onWaitingNewDatas(() => {
-			if (autoDestruct) this.destruct();
-		});
 	}
 }

@@ -12,12 +12,6 @@ type ICreateOptions = {
 	maxConcurrency: number;
 
 	/**
-	 * @description If true, the instance will be destructed when the queue is empty
-	 * @default true
-	 */
-	autoDestruct: boolean;
-
-	/**
 	 * @description Configure the Rate Limit in a Specified Time Range
 	 * @default null
 	 */

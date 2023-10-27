@@ -1,5 +1,8 @@
 import EEvents from "./EEvents";
 
+/**
+ * @description Event object
+ */
 export default class EventObject<TCtx = unknown, TData = unknown, TRes = unknown> {
 	private _preventedAction: boolean = false;
 
