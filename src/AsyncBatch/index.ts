@@ -10,21 +10,21 @@ import Countdown from "./Countdown";
  * @todo Add timeout by action, or maybe by batch
  * @example /src/examples/basic.ts
  */
-export default class AsyncBatch<T, R> {
+export default class AsyncBatch<TDataType, TResponseType> {
 	private _isStarted = false;
 	private _isWaitingNewDatas = false;
 	private currentConcurrency: number = 0;
 	private waitingDatasDeferred = this.createDeferred();
 	private startDeferred = this.createDeferred();
-	private filter: ((data: T) => boolean) | ((data: T) => Promise<boolean>) | null = null;
+	private filter: ((data: TDataType) => boolean) | ((data: TDataType) => Promise<boolean>) | null = null;
 
-	private readonly queue: T[] = [];
+	private readonly queue: TDataType[] = [];
 	private readonly options: ICreateOptions;
 	private readonly emitter = new Emitter();
-	private readonly _events: Events<AsyncBatch<T, R>, T, R>;
+	private readonly _events: Events<AsyncBatch<TDataType, TResponseType>, TDataType, TResponseType>;
 
-	private constructor(private action: (data: T) => R, options: Partial<ICreateOptions>) {
-		this._events = new Events<AsyncBatch<T, R>, T, R>(this.emitter);
+	private constructor(private action: (data: TDataType) => TResponseType, options: Partial<ICreateOptions>) {
+		this._events = new Events<AsyncBatch<TDataType, TResponseType>, TDataType, TResponseType>(this.emitter);
 		this.options = {
 			autoStart: options.autoStart ?? false,
 			maxConcurrency: options.maxConcurrency ?? 4,
@@ -34,7 +34,7 @@ export default class AsyncBatch<T, R> {
 		this._isStarted = this.options.autoStart;
 	}
 
-	public static create<T, R>(datas: T[], action: (data: T) => R, options: Partial<ICreateOptions> = {}): AsyncBatch<T, R> {
+	public static create<TDataType, TResponseType>(datas: TDataType[], action: (data: TDataType) => TResponseType, options: Partial<ICreateOptions> = {}): AsyncBatch<TDataType, TResponseType> {
 		const asyncBatch = new this(action, options).addMany([...datas]);
 		setImmediate(() => asyncBatch.handleQueue());
 		return asyncBatch;
@@ -42,7 +42,7 @@ export default class AsyncBatch<T, R> {
 
 	public add = (() => {
 		let clearImmediateId: ReturnType<typeof setImmediate>;
-		return (...data: T[]): AsyncBatch<T, R> => {
+		return (...data: TDataType[]): AsyncBatch<TDataType, TResponseType> => {
 			this.queue.push(...data);
 
 			if (this.isWaitingNewDatas) {
@@ -53,17 +53,17 @@ export default class AsyncBatch<T, R> {
 		};
 	})();
 
-	public addMany(datas: T[]): AsyncBatch<T, R> {
+	public addMany(datas: TDataType[]): AsyncBatch<TDataType, TResponseType> {
 		this.add(...datas);
 		return this;
 	}
 
-	public updateAction(action: NonNullable<typeof this.action>): AsyncBatch<T, R> {
+	public updateAction(action: NonNullable<typeof this.action>): AsyncBatch<TDataType, TResponseType> {
 		this.action = action;
 		return this;
 	}
 
-	public get events(): Events<AsyncBatch<T, R>, T, R> {
+	public get events(): Events<AsyncBatch<TDataType, TResponseType>, TDataType, TResponseType> {
 		return this._events;
 	}
 
@@ -79,7 +79,7 @@ export default class AsyncBatch<T, R> {
 		return this._isWaitingNewDatas;
 	}
 
-	public start(): AsyncBatch<T, R> {
+	public start(): AsyncBatch<TDataType, TResponseType> {
 		if (this._isStarted) return this;
 		this._isStarted = true;
 		setImmediate(() => this.startDeferred.resolve(undefined));
@@ -89,7 +89,7 @@ export default class AsyncBatch<T, R> {
 	/**
 	 * @alias !start
 	 */
-	public requestPause(): AsyncBatch<T, R> {
+	public requestPause(): AsyncBatch<TDataType, TResponseType> {
 		if (!this._isStarted) return this;
 		this._isStarted = false;
 		return this;
@@ -98,7 +98,7 @@ export default class AsyncBatch<T, R> {
 	/**
 	 * @alias pause
 	 */
-	public stop(): AsyncBatch<T, R> {
+	public stop(): AsyncBatch<TDataType, TResponseType> {
 		return this.requestPause();
 	}
 
@@ -106,17 +106,17 @@ export default class AsyncBatch<T, R> {
 		return this.currentConcurrency;
 	}
 
-	public updateMaxConcurrency(maxConcurrency: number): AsyncBatch<T, R> {
+	public updateMaxConcurrency(maxConcurrency: number): AsyncBatch<TDataType, TResponseType> {
 		this.options.maxConcurrency = maxConcurrency;
 		return this;
 	}
 
-	public setFilter(filter: typeof this.filter): AsyncBatch<T, R> {
+	public setFilter(filter: typeof this.filter): AsyncBatch<TDataType, TResponseType> {
 		this.filter = filter;
 		return this;
 	}
 
-	public clear(): AsyncBatch<T, R> {
+	public clear(): AsyncBatch<TDataType, TResponseType> {
 		const eventWillCleared = new EventObject(this, EEvents.WILL_CLEARED, undefined, undefined, undefined, true);
 		this.emit(EEvents.WILL_CLEARED, eventWillCleared);
 
@@ -129,7 +129,7 @@ export default class AsyncBatch<T, R> {
 		return this;
 	}
 
-	private emit(eventName: EEvents, data: EventObject<AsyncBatch<T, R> | T, T | unknown, R | unknown>): void {
+	private emit(eventName: EEvents, data: EventObject<AsyncBatch<TDataType, TResponseType> | TDataType, TDataType | unknown, TResponseType | unknown>): void {
 		this.emitter.emit(eventName, data);
 	}
 
@@ -142,7 +142,7 @@ export default class AsyncBatch<T, R> {
 		/**
 		 * @description terminate each loop step to let the next one start
 		 */
-		const endLoopStep = (data: T, responseStored?: R, errorStored?: string | Error) => {
+		const endLoopStep = (data: TDataType, responseStored?: TResponseType, errorStored?: string | Error) => {
 			this.currentConcurrency--;
 			this.emit(EEvents.PROCESSING_ENDED, new EventObject(this, EEvents.PROCESSING_ENDED, data, responseStored, errorStored));
 			deferredQueue.resolve(undefined);
@@ -154,15 +154,15 @@ export default class AsyncBatch<T, R> {
 		 * @description Loop on the queue and call the action on each data
 		 */
 		const loopOnConcurrency = async (): Promise<void> => {
-			const data = this.queue.shift() as T;
+			const data = this.queue.shift() as TDataType;
 
-			let responseStored: R | undefined = undefined;
+			let responseStored: TResponseType | undefined = undefined;
 			let errorStored: string | Error | undefined = undefined;
 
 			if (!(await this.shouldPreserveData(data))) return endLoopStep(data);
 			if (!this.emitEachStarted(data)) return endLoopStep(data);
 
-			let eventObject: EventObject<this, T, R>;
+			let eventObject: EventObject<this, TDataType, TResponseType>;
 
 			try {
 				responseStored = await this.callAction(data);
@@ -267,7 +267,7 @@ export default class AsyncBatch<T, R> {
 	/**
 	 * @description Emit event for each started data
 	 */
-	private emitEachStarted(data: T): boolean {
+	private emitEachStarted(data: TDataType): boolean {
 		const eachStartedObject = new EventObject(this, EEvents.PROCESSING_STARTED, data, undefined, undefined, true);
 		this.emit(EEvents.PROCESSING_STARTED, eachStartedObject);
 		return !eachStartedObject.preventedAction;
@@ -276,14 +276,14 @@ export default class AsyncBatch<T, R> {
 	/**
 	 * @description Call the action with the data
 	 */
-	private async callAction(data: T): Promise<R> {
+	private async callAction(data: TDataType): Promise<TResponseType> {
 		return await this.action(data);
 	}
 
 	/**
 	 * @description Check if the data should be preserved when the filter is executed
 	 */
-	private async shouldPreserveData(data: T): Promise<boolean> {
+	private async shouldPreserveData(data: TDataType): Promise<boolean> {
 		try {
 			return (await this.filter?.(data)) ?? true;
 		} catch (error) {
