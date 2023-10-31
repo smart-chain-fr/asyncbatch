@@ -1,6 +1,6 @@
 # AsyncBatch README
 
-AsyncBatch is a JavaScript library for executing asynchronous tasks in batches with concurrency control. This README provides an overview of the library's features and how to use it effectively.
+AsyncBatch is a JavaScript library designed for performing batched asynchronous tasks while controlling concurrency, all without relying on external dependencies. This README offers an introduction to the library's capabilities and instructions on its efficient usage.
 
 ## Installation
 
@@ -11,44 +11,24 @@ npm install async-batch
 # or
 yarn add async-batch
 ```
-## Usage
+## Basic Usage
 To use the AsyncBatch library, you need to create an instance and configure it as needed. Here's a basic example of how to use it:
 
 ```ts
 import AsyncBatch from 'async-batch';
 
-// Define your action function
-function asyncAction(data) {
-  // Your asynchronous task logic here
-}
-
 // Create an instance of AsyncBatch
-const asyncBatch = AsyncBatch.create(dataArray, asyncAction, options);
-
-// Start processing the data
-asyncBatch.start();
+const asyncBatch = AsyncBatch.create(datas, simpleAction).start();
 ```
 The code snippet above shows how to create an AsyncBatch instance, define an asynchronous action function, and start processing data. The following sections provide more details on how to use the library.
 
+## Advanced Usage
 ### Creating an AsyncBatch Instance
 To create an AsyncBatch instance, you need to provide the following parameters:
 
 - `dataArray`: An array of data to be processed. Each item in the array will be passed to the action function.
 - `asyncAction`: An asynchronous function that will be called for each item in the data array. The function should accept a single parameter, which will be an item from the data array.
 - `options`: An optional object that can be used to configure the AsyncBatch instance. See the [Options](#options) section for more details.
-
-Here's an example of how to create an AsyncBatch instance:
-
-```ts
-const asyncBatch = AsyncBatch.create(dataArray, asyncAction, options);
-```
-
-### Starting the Batch
-Once you've created an AsyncBatch instance, you can start processing the data by calling the `start()` method:
-
-```ts
-asyncBatch.start();
-```
 
 ### Options
 The AsyncBatch constructor accepts an optional `options` parameter that can be used to configure the instance. The following options are available:
@@ -65,7 +45,7 @@ const options = {
   maxConcurrency: 10, // Set a higher concurrency limit
   rateLimit: {
     msTimeRange: 1000, // Set a time range for rate limiting
-    maxCalls: 5, // Limit the number of calls within the time range
+    maxExecution: 5, // Set a maximum number of tasks to execute within the time range
   };
 };
 
@@ -73,14 +53,63 @@ const asyncBatch = AsyncBatch.create(dataArray, asyncAction, options);
 
 ```
 
+### Practical Example
+#### Asynchronous Batch Processing with PolyScan API
+
+The batch processes an array of data elements, making asynchronous API requests to the PolyScan API using a provided API key. The asyncAction function handles the API fetch logic, while options like concurrency limits and rate limiting control the processing.
+
+```ts
+import AsyncBatch from 'async-batch';
+
+// Replace this with your array of data to process
+const dataArray = [1, 2, 3, 4, 5];
+
+// Define your options
+const options = {
+  autoStart: true,
+  maxConcurrency: 4, 
+  rateLimit: {
+    msTimeRange: 1000,
+    maxExecution: 5, // Avoid to exceed the API rate limit
+  },
+};
+
+// Create an instance of AsyncBatch with API fetch as the async action
+const asyncBatch = AsyncBatch.create(
+  dataArray,
+  async (data) => {
+    // Replace 'YOUR_API_KEY' with your actual API key
+    const apiKey = 'YOUR_API_KEY';
+    const apiUrl = `https://api.polyscan.io/v1/endpoint?data=${data}&apiKey=${apiKey}`;
+    
+    try {
+      const response = await fetch(apiUrl);
+      if (response.ok) {
+        const jsonData = await response.json();
+        return jsonData; // Return the fetched data
+      } else {
+        throw new Error(`Failed to fetch data for ${data}`);
+      }
+    } catch (error) {
+      throw error; // Propagate the error
+    }
+  },
+  options
+);
+
+// Start processing the data
+asyncBatch.start();
+```
+
+
 ### Additional Features
 
 The `AsyncBatch` library offers additional features and methods that can be used to control the batch processing. These features provide flexibility and control over how your asynchronous tasks are executed. Here are some of the key features:
 
-- `add(data)`: Add data to the batch for processing.
+- `add(data)`: Add new data to the batch.
+- `addMany(datas)`: Add multiple data items to the batch.
 - `updateAction(action)`: Change the action function used for processing data.
-- `pause()`: Pause the batch processing.
-- `stop()`: Stop the batch processing (alias for pause).
+- `pause()/stop()`: Pause or stop the batch processing at any time and resume it later using `start()`.
 - `getCurrentConcurrency()`: Get the current number of concurrent tasks.
 - `updateMaxConcurrency(maxConcurrency)`: Update the maximum concurrency limit.
 - `setFilter(filter)`: Set a filter function to determine whether data should be processed.
@@ -111,7 +140,7 @@ asyncBatch.events.onProcessingStart((event) => {
 
 asyncBatch.events.onProcessingEnd(({ data, response, error }) => {
   console.log("Processing ended for data:", data);
-  console.log("Response:", response);
+  console.log("Succes response:", response);
   console.log("Error:", error);
 });
 
@@ -136,7 +165,9 @@ asyncBatch.events.onWaitingNewDatas(() => {
 ```
 This event is triggered when the batch is waiting for new data, and it demonstrates how to add more data dynamically to the batch.
 
-For more detailed information and examples, please refer to the library's documentation or the example file located at /src/examples/basic.ts.
+## Sample Code
+
+For more detailed information and examples, please refer to the library's example file located at /src/examples/basic.ts.
 
 ## Contributing
 
@@ -148,7 +179,7 @@ This project is licensed under the terms of the [MIT license](LICENSE).
 
 ## Credits
 
-This library was created by [Team SmartChain]
+This library was developed by [Smartchain](https://www.smart-chain.fr/).
 
 
 

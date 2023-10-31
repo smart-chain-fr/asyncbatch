@@ -15,7 +15,7 @@ type ICreateOptions = {
 	 * @description Configure the Rate Limit in a Specified Time Range
 	 * @default null
 	 */
-	rateLimit: { msTimeRange: number; maxCalls: number } | null;
+	rateLimit: { msTimeRange: number; maxExecution: number } | null;
 };
 
 export default ICreateOptions;

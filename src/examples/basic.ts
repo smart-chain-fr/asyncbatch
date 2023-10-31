@@ -6,7 +6,7 @@ const simpleAction = (data: number) => {
 	return (data + Math.random() * 4).toString();
 };
 
-const asyncBatch = AsyncBatch.create(datas, simpleAction, { maxConcurrency: 4, rateLimit: { msTimeRange: 200, maxCalls: 8 } })
+const asyncBatch = AsyncBatch.create(datas, simpleAction, { maxConcurrency: 4, rateLimit: { msTimeRange: 200, maxExecution: 8 } })
 	.setFilter(async () => {
 		return true;
 	})

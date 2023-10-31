@@ -89,4 +89,8 @@ export default class Events<TCtx, TData, TRes = unknown> {
 	public removeAllListeners() {
 		this.emitter.removeAllListeners();
 	}
+
+	public removeEventListener<TEvt>(eventName: EEvents, listener: (event: TEvt) => unknown) {
+		this.emitter.off(eventName, listener);
+	}
 }

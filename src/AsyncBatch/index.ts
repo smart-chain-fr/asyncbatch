@@ -193,7 +193,7 @@ export default class AsyncBatch<T, R> {
 
 			countdown.start();
 			this.currentConcurrency++;
-			let isMaxCalls = callNumber >= (this.options.rateLimit?.maxCalls ?? 0);
+			let isMaxCalls = callNumber >= (this.options.rateLimit?.maxExecution ?? 0);
 			if (isMaxCalls && countdown.willWait()) {
 				this.currentConcurrency--;
 				await countdown.wait();
