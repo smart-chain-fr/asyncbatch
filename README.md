@@ -35,7 +35,7 @@ The AsyncBatch constructor accepts an optional `options` parameter that can be u
 
 - `concurrency`: The maximum number of concurrent tasks to run. Defaults to `4`.
 - `autoStart`: (default: false): Whether the batch processing should start automatically.
-- `rateLimit`: (default: null): Rate-limiting options controls the rate at which tasks are executed to avoid overloading an external API or service. For example, if you're making API calls to an external service like the PolyScan API, it may have rate limits in place to prevent abuse or excessive usage. By configuring rate limiting in the options, you can ensure that your batch processing doesn't exceed these limits.
+- `rateLimit`: (default: null): Rate-limiting options controls the rate at which tasks are executed to avoid overloading an external API or service. For example, if you're making API calls to an external service like the EtherScan API, it may have rate limits in place to prevent abuse or excessive usage. By configuring rate limiting in the options, you can ensure that your batch processing doesn't exceed these limits.
 
 ```ts
 const options = {
