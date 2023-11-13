@@ -35,9 +35,7 @@ The AsyncBatch constructor accepts an optional `options` parameter that can be u
 
 - `concurrency`: The maximum number of concurrent tasks to run. Defaults to `4`.
 - `autoStart`: (default: false): Whether the batch processing should start automatically.
-- `rateLimit`: (default: null): Rate-limiting options for controlling task execution 
-
-Here's how to pass options when creating an AsyncBatch instance:
+- `rateLimit`: (default: null): Rate-limiting options controls the rate at which tasks are executed to avoid overloading an external API or service. For example, if you're making API calls to an external service like the PolyScan API, it may have rate limits in place to prevent abuse or excessive usage. By configuring rate limiting in the options, you can ensure that your batch processing doesn't exceed these limits.
 
 ```ts
 const options = {
@@ -56,39 +54,42 @@ const asyncBatch = AsyncBatch.create(dataArray, asyncAction, options);
 ### Practical Example
 #### Asynchronous Batch Processing with PolyScan API
 
-The batch processes an array of data elements, making asynchronous API requests to the PolyScan API using a provided API key. The asyncAction function handles the API fetch logic, while options like concurrency limits and rate limiting control the processing.
+This code batch processes a list of token IDs by fetching owner addresses from the Bored Ape Yacht Club (BAYC) smart contract on Etherscan. The asyncAction function manages the API requests, while options like concurrency limits and rate limiting ensure efficient and rate-limited data retrieval.
 
 ```ts
 import AsyncBatch from 'async-batch';
 
-// Replace this with your array of data to process
-const dataArray = [1, 2, 3, 4, 5];
+// Replace this array with the list of token IDs you want to retrieve owner addresses for
+const tokenIds = [1, 2, 3, 4, 5];
 
-// Define your options
 const options = {
-  autoStart: true,
-  maxConcurrency: 4, 
+  concurrency: 4, // Maximum concurrent tasks
+  autoStart: true, // Automatically start processing
   rateLimit: {
-    msTimeRange: 1000,
-    maxExecution: 5, // Avoid to exceed the API rate limit
+    msTimeRange: 1000, // Limit requests to one per second
+    maxCalls: 5, // Allow a maximum of 5 requests within the time range
   },
 };
 
 // Create an instance of AsyncBatch with API fetch as the async action
 const asyncBatch = AsyncBatch.create(
-  dataArray,
-  async (data) => {
-    // Replace 'YOUR_API_KEY' with your actual API key
-    const apiKey = 'YOUR_API_KEY';
-    const apiUrl = `https://api.polyscan.io/v1/endpoint?data=${data}&apiKey=${apiKey}`;
+  tokenIds,
+  async (tokenId) => {
+    const contractAddress = '0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D';
+    const apiKey = 'YOUR_ETHERSCAN_API_KEY'; // Replace with your Etherscan API key
+    
+    // Construct the Etherscan API URL to retrieve owner addresses for a specific token ID
+    const apiUrl = `https://api.etherscan.io/api?module=token&action=tokeninfo&contractaddress=${contractAddress}&tokenid=${tokenId}&apikey=${apiKey}`;
     
     try {
       const response = await fetch(apiUrl);
       if (response.ok) {
         const jsonData = await response.json();
-        return jsonData; // Return the fetched data
+        // Extract owner addresses from the response
+        const ownerAddresses = jsonData.result.owneraddresses;
+        return ownerAddresses; // Return the owner addresses
       } else {
-        throw new Error(`Failed to fetch data for ${data}`);
+        throw new Error(`Failed to fetch owner addresses for token ID ${tokenId}`);
       }
     } catch (error) {
       throw error; // Propagate the error
@@ -97,8 +98,9 @@ const asyncBatch = AsyncBatch.create(
   options
 );
 
-// Start processing the data
+// Start processing the token IDs to retrieve owner addresses
 asyncBatch.start();
+
 ```
 
 
@@ -151,16 +153,30 @@ asyncBatch.events.onProcessingError(({ error }) => {
 These events notify you when processing starts for an item in the data array, when processing ends, and when an error occurs during processing.
 
 #### Waiting for New Data
+The onWaitingNewDatas event in this code is a callback triggered when the batch processing reaches a point where it has processed all the available data and is waiting for new data to continue. In this specific example, it fetches paginated user data from a database and adds it to the batch for further processing. If the maximum page limit (maxPage) is reached, the batch processing is stopped, ensuring that only a specified amount of data is processed from the database.
 
 ```ts
-let i = 0;
-asyncBatch.events.onWaitingNewDatas(() => {
-  console.log("Waiting for new datas");
-  if (i > 1) {
-    return;
-  }
-  i++;
-  asyncBatch.addMany(datas);
+
+function getPaginatedUsersFromDatabase(page: number): Promise<number[]> {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve(Array.from({ length: 10 }, (_, i) => i + page * 10));
+        }, 1000);
+    });
+}
+
+let currentPage = 0;
+let maxPage = 10;
+asyncBatch.events.onWaitingNewDatas(async() => {
+    console.log("waiting new datas");
+
+    // Stop the batch if we have reached the max page
+    if(currentPage >= maxPage) return;
+
+    const usersId = await getPaginatedUsersFromDatabase(currentPage);
+    currentPage++;
+
+    asyncBatch.addMany(usersId);
 });
 ```
 This event is triggered when the batch is waiting for new data, and it demonstrates how to add more data dynamically to the batch.
@@ -177,9 +193,9 @@ Contributions are welcome! Please see the [contributing guide](CONTRIBUTING.md) 
 
 This project is licensed under the terms of the [MIT license](LICENSE).
 
-## Credits
+## Initied by
 
-This library was developed by [Smartchain](https://www.smart-chain.fr/).
+This library was initied by [Smartchain](https://www.smart-chain.fr/).
 
 
 
