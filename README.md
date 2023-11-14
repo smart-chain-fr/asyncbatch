@@ -1,4 +1,4 @@
-# AsyncBatch README
+# AsyncBatch
 
 AsyncBatch is a JavaScript library designed for performing batched asynchronous tasks while controlling concurrency, all without relying on external dependencies. This README offers an introduction to the library's capabilities and instructions on its efficient usage.
 
@@ -52,9 +52,9 @@ const asyncBatch = AsyncBatch.create(dataArray, asyncAction, options);
 ```
 
 ### Practical Example
-#### Asynchronous Batch Processing with PolyScan API
+#### Asynchronous Batch Processing with EtherScan API
 
-This code batch processes a list of token IDs by fetching owner addresses from the Bored Ape Yacht Club (BAYC) smart contract on Etherscan. The asyncAction function manages the API requests, while options like concurrency limits and rate limiting ensure efficient and rate-limited data retrieval.
+This code batch processes a list of token IDs by fetching owner addresses from the Bored Ape Yacht Club (BAYC) smart contract on EtherScan. The asyncAction function manages the API requests, while options like concurrency limits and rate limiting ensure efficient and rate-limited data retrieval.
 
 ```ts
 import AsyncBatch from 'async-batch';
@@ -63,11 +63,11 @@ import AsyncBatch from 'async-batch';
 const tokenIds = [1, 2, 3, 4, 5];
 
 const options = {
-  concurrency: 4, // Maximum concurrent tasks
   autoStart: true, // Automatically start processing
+  concurrency: 4, // Maximum concurrent tasks
   rateLimit: {
     msTimeRange: 1000, // Limit requests to one per second
-    maxCalls: 5, // Allow a maximum of 5 requests within the time range
+    maxExecution: 5, // Allow a maximum of 5 requests within the time range
   },
 };
 
@@ -86,8 +86,8 @@ const asyncBatch = AsyncBatch.create(
       if (response.ok) {
         const jsonData = await response.json();
         // Extract owner addresses from the response
-        const ownerAddresses = jsonData.result.owneraddresses;
-        return ownerAddresses; // Return the owner addresses
+        const ownerAddresses = jsonData.result.TokenAddress;
+        return TokenAddress; // Return the owner addresses
       } else {
         throw new Error(`Failed to fetch owner addresses for token ID ${tokenId}`);
       }
@@ -100,6 +100,11 @@ const asyncBatch = AsyncBatch.create(
 
 // Start processing the token IDs to retrieve owner addresses
 asyncBatch.start();
+
+// Handle processing events and errors using the event emitter provided by AsyncBatch
+asyncBatch.events.onProcessingEnd(({ data, response, error }) => {
+  console.log(`Owner addresses for token ID ${data}:`, response);
+});
 
 ```
 
@@ -183,7 +188,7 @@ This event is triggered when the batch is waiting for new data, and it demonstra
 
 ## Sample Code
 
-For more detailed information and examples, please refer to the library's example file located at /src/examples/basic.ts.
+For more detailed information and examples, please refer to the library's example file located at [/src/examples/basic.ts](/src/examples/basic.ts).
 
 ## Contributing
 
