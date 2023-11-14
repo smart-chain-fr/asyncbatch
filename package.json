@@ -1,8 +1,7 @@
 {
 	"name": "@smart-chain-fr/asyncbatch",
-	"version": "1.0.92",
+	"version": "1.0.93",
 	"description": "Asynchronously process task batches",
-	"keywords": [],
 	"main": "lib/main.js",
 	"types": "lib/main.d.ts",
 	"scripts": {
@@ -23,6 +22,25 @@
 	"publishConfig": {
 		"registry": "https://registry.npmjs.org/"
 	},
+	"keywords": [
+		"batch",
+		"async",
+		"processing",
+		"concurrency",
+		"rate-limiting",
+		"queue",
+		"utility",
+		"automation",
+		"async-action",
+		"data-processing",
+		"async-operations",
+		"throttle",
+		"await",
+		"promise",
+		"promises",
+		"limited",
+		"limit"
+	],
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/smart-chain-fr/asyncbatch.git"

@@ -15,7 +15,7 @@ yarn add @smart-chain-fr/asyncbatch
 To use the AsyncBatch library, you need to create an instance and configure it as needed. Here's a basic example of how to use it:
 
 ```ts
-import AsyncBatch from '@smart-chain-fr/asyncbatch';
+import { AsyncBatch } from '@smart-chain-fr/asyncbatch';
 
 // Create an instance of AsyncBatch
 const asyncBatch = AsyncBatch.create(datas, simpleAction).start();
@@ -57,7 +57,7 @@ const asyncBatch = AsyncBatch.create(dataArray, asyncAction, options);
 This code batch processes a list of token IDs by fetching owner addresses from the Bored Ape Yacht Club (BAYC) smart contract on EtherScan. The asyncAction function manages the API requests, while options like concurrency limits and rate limiting ensure efficient and rate-limited data retrieval.
 
 ```ts
-import AsyncBatch from '@smart-chain-fr/asyncbatch';
+import { AsyncBatch } from '@smart-chain-fr/asyncbatch';
 
 // Replace this array with the list of token IDs you want to retrieve owner addresses for
 const tokenIds = [1, 2, 3, 4, 5];
@@ -87,7 +87,7 @@ const asyncBatch = AsyncBatch.create(
         const jsonData = await response.json();
         // Extract owner addresses from the response
         const ownerAddresses = jsonData.result.TokenAddress;
-        return TokenAddress; // Return the owner addresses
+        return ownerAddresses; // Return the owner addresses
       } else {
         throw new Error(`Failed to fetch owner addresses for token ID ${tokenId}`);
       }
