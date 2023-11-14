@@ -1,6 +1,6 @@
 {
 	"name": "@smart-chain-fr/asyncbatch",
-	"version": "1.0.6",
+	"version": "1.0.8",
 	"description": "Asynchronously process task batches",
 	"main": "lib/main.js",
 	"types": "lib/main.d.ts",
@@ -24,7 +24,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/smart-chain-fr/asyncbatch"
+		"url": "git+https://github.com/smart-chain-fr/asyncbatch.git"
 	},
 	"author": "Team smart-chain",
 	"license": "ISC",
