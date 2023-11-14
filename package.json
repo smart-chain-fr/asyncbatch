@@ -2,6 +2,7 @@
 	"name": "@smart-chain-fr/asyncbatch",
 	"version": "1.0.8",
 	"description": "Asynchronously process task batches",
+	"keywords": [],
 	"main": "lib/main.js",
 	"types": "lib/main.d.ts",
 	"scripts": {
