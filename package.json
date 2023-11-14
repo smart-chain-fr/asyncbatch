@@ -1,6 +1,6 @@
 {
 	"name": "@smart-chain-fr/asyncbatch",
-	"version": "1.0.91",
+	"version": "1.0.92",
 	"description": "Asynchronously process task batches",
 	"keywords": [],
 	"main": "lib/main.js",
@@ -21,14 +21,14 @@
 		"lib/**/*"
 	],
 	"publishConfig": {
-		"registry": "https://npm.pkg.github.com"
+		"registry": "https://registry.npmjs.org/"
 	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/smart-chain-fr/asyncbatch.git"
 	},
 	"author": "Team smart-chain",
-	"license": "ISC",
+	"license": "MIT",
 	"devDependencies": {
 		"@types/jest": "^29.5.2",
 		"jest": "^29.5.0",
