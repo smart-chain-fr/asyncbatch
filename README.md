@@ -7,15 +7,15 @@ AsyncBatch is a JavaScript library designed for performing batched asynchronous 
 You can install the AsyncBatch library using npm or yarn:
 
 ```bash
-npm install async-batch
+npm install @smart-chain-fr/asyncbatch
 # or
-yarn add async-batch
+yarn add @smart-chain-fr/asyncbatch
 ```
 ## Basic Usage
 To use the AsyncBatch library, you need to create an instance and configure it as needed. Here's a basic example of how to use it:
 
 ```ts
-import AsyncBatch from 'async-batch';
+import AsyncBatch from '@smart-chain-fr/asyncbatch';
 
 // Create an instance of AsyncBatch
 const asyncBatch = AsyncBatch.create(datas, simpleAction).start();
@@ -57,7 +57,7 @@ const asyncBatch = AsyncBatch.create(dataArray, asyncAction, options);
 This code batch processes a list of token IDs by fetching owner addresses from the Bored Ape Yacht Club (BAYC) smart contract on EtherScan. The asyncAction function manages the API requests, while options like concurrency limits and rate limiting ensure efficient and rate-limited data retrieval.
 
 ```ts
-import AsyncBatch from 'async-batch';
+import AsyncBatch from '@smart-chain-fr/asyncbatch';
 
 // Replace this array with the list of token IDs you want to retrieve owner addresses for
 const tokenIds = [1, 2, 3, 4, 5];
