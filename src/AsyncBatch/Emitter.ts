@@ -1,4 +1,4 @@
-import { EventEmitter } from "node:events";
+import { EventEmitter } from "events";
 
 export default class Emitter extends EventEmitter {
 	public constructor() {
