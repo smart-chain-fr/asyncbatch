@@ -1,5 +1,4 @@
 export default class PromiseDeferred<T> {
-
 	public resolve!: (value: T) => void;
 	public reject!: (reason?: any) => void;
 	public promise: Promise<T>;
