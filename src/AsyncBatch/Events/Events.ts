@@ -11,8 +11,6 @@ import EventProcessingSuccess from "./EventProcessingSuccess";
  */
 type TRemoveEvent = () => void;
 
-//type EventObjectSuccess<TCtx, TData, TRes> = Omit<EventObject<TCtx, TData, TRes>, "error">;
-
 /**
  * @description Events of AsyncBatch
  */

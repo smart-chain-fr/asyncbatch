@@ -32,7 +32,7 @@ export default class AsyncBatch<TDataType, TResponseType> {
 	private readonly _events: Events<AsyncBatch<TDataType, TResponseType>, TDataType, Awaited<TResponseType>>;
 
 	private constructor(private action: (data: TDataType) => TResponseType, options: Partial<ICreateOptions>) {
-		this._events = new Events<AsyncBatch<TDataType, TResponseType>, TDataType, Awaited<TResponseType>>(this.emitter);
+		this._events = new Events(this.emitter);
 		this.options = {
 			autoStart: options.autoStart ?? false,
 			maxConcurrency: options.maxConcurrency ?? 4,
