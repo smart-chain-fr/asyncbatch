@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2023-11-28
+### Changed
+- AsyncBatch can be instantiated with new promise run method simplifying the usage for a simple use case. 
+- New promised events
+- Documentation improvements
+- New example file 
+
 ## [1.1.0] - 2023-11-27
 ### Changed
 - Fixed type event arguments of onProcessingEnd method and Improved event handling. 

@@ -1,57 +1,34 @@
+/*
+	Example of a basic usage of AsyncBatch
+*/
 import AsyncBatch from "../AsyncBatch";
 
-function getPaginatedUsersFromDatabase(page: number): Promise<number[]> {
-	return new Promise((resolve) => {
-		setTimeout(() => {
-			resolve(Array.from({ length: 10 }, (_, i) => i + page * 10));
-		}, 1000);
-	});
-}
+// Set the datas to process
+const datas = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
+/**
+ * This is the simple method that will be executed on each data
+ * For our example we simulate a long action with a timeout and return a random number as a string
+ * Obviously in a real use case you will do something more useful and return what ever you want
+ */
 const simpleAction = async (data: number) => {
-	return (data + Math.random() * 4).toString();
+	// Create a timoute to simulate a long action
+	await new Promise((resolve) => {
+		setTimeout(() => {
+			resolve((data + Math.random() * 4).toString());
+			console.log("processed", data);
+		}, 500);
+	});
 };
 
-const asyncBatch = AsyncBatch.create<number, Promise<string>>([], simpleAction, { maxConcurrency: 4, rateLimit: { msTimeRange: 200, maxExecution: 8 } })
-	.setFilter(async () => {
-		return true;
-	})
-	.start();
-
-asyncBatch.events.onStarted(() => {
-	console.log(asyncBatch.events.EventsEnum.START);
-});
-
-asyncBatch.events.onPaused(() => {
-	console.log(asyncBatch.events.EventsEnum.PAUSE);
-});
-
-asyncBatch.events.onProcessingStart((event) => {
-	console.log("processingStart", event.data);
-});
-
-asyncBatch.events.onProcessingSuccess(({ data, response }) => {
-	console.log("processingSuccess", data, response);
-});
-
-asyncBatch.events.onProcessingEnd(({ data, response, error }) => {
-	console.log("processingEnd", { data, response, error });
-});
-
-asyncBatch.events.onProcessingError(({ error }) => {
-	console.log("processingError", { error });
-});
-
-let currentPage = 0;
-let maxPage = 10;
-asyncBatch.events.onWaitingNewDatas(async () => {
-	console.log("waiting new datas");
-
-	// Stop the batch if we have reached the max page
-	if (currentPage >= maxPage) return;
-
-	const usersId = await getPaginatedUsersFromDatabase(currentPage);
-	currentPage++;
-
-	asyncBatch.addMany(usersId);
-});
+(async () => {
+	/**
+	 * In this example we used the run method but you can also use the create method to give you more control
+	 * Here we use the static run method to run the batch
+	 * We set the max concurrency to 4
+	 * We set the rate limit to 8 executions per 200ms
+	 * When you use the run method the AsyncBatch is automatically started
+	 * Await the run method to wait for the end of the batch
+	 */
+	await AsyncBatch.run(datas, simpleAction, { maxConcurrency: 4 });
+})();
