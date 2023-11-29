@@ -12,7 +12,10 @@ npm install @smart-chain-fr/asyncbatch
 yarn add @smart-chain-fr/asyncbatch
 ```
 ## Basic Usage
-To use the AsyncBatch library, you need to create an instance and configure it as needed. Here's a basic example of how to use it:
+To use the AsyncBatch library, you have two primary approaches: using the create method or the run method. Each method offers different levels of control and simplicity based on your requirements.
+
+### Using the `create` Method
+To begin with the create method:
 
 ```ts
 import { AsyncBatch } from '@smart-chain-fr/asyncbatch';
@@ -20,7 +23,25 @@ import { AsyncBatch } from '@smart-chain-fr/asyncbatch';
 // Create an instance of AsyncBatch
 const asyncBatch = AsyncBatch.create(datas, simpleAction).start();
 ```
-The code snippet above shows how to create an AsyncBatch instance, define an asynchronous action function, and start processing data. The following sections provide more details on how to use the library.
+
+This example demonstrates creating an AsyncBatch instance, defining an asynchronous action function, and starting the processing of data.
+
+### Using the `run` Method
+
+Alternatively, you can use the run method for a more streamlined approach:
+
+```ts
+import { AsyncBatch } from '@smart-chain-fr/asyncbatch';
+
+// Run the batch process
+await AsyncBatch.run(datas, simpleAction, options);
+```
+The run method is particularly useful for simpler use cases where you want to quickly set up and start your batch process. It automatically creates and starts the AsyncBatch instance for you.
+
+### Key Differences
+
+- The `create` method provides granular control over the batch process, allowing you to configure, start, pause, and resume the batch process as needed as well as using the event emitter to handle events.
+- The `run` method offers a convenient and efficient way to execute batch tasks with minimal setup. It's ideal for straightforward use cases.
 
 ## Advanced Usage
 ### Creating an AsyncBatch Instance
