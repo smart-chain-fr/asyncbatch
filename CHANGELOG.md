@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2023-11-27
+### Changed
+- Fixed type event arguments of onProcessingEnd method and Improved event handling. 
+
 ## [1.0.4] - 2023-11-24
 ### Changed
 - Switched from `node:events` to `events` module to enhance compatibility with React and other front-end frameworks. This change enables the code to work seamlessly not just in Node.js environments but also in various front-end scenarios, offering a more versatile and robust solution for event handling.

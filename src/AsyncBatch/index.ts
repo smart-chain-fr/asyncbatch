@@ -1,10 +1,18 @@
 import ICreateOptions from "./ICreateOptions";
-import EEvents from "./EEvents";
 import Deferred from "./PromiseDeferred";
 import Events from "./Events";
-import Emitter from "./Emitter";
-import EventObject from "./EventObject";
+import Emitter from "./Events/Emitter";
+import EventBasic from "./Events/EventBasic";
 import Countdown from "./Countdown";
+import EventProcessingEnd from "./Events/EventProcessingEnd";
+import EventProcessingSuccess from "./Events/EventProcessingSuccess";
+import EventProcessingError from "./Events/EventProcessingError";
+import EventProcessingStart from "./Events/EventProcessingStart";
+import EventWaitNewDatas from "./Events/EventWaitNewDatas";
+import EventPaused from "./Events/EventPaused";
+import EventCleared from "./Events/EventCleared";
+import EventBeforeCleare from "./Events/EventBeforeCleare";
+import EventStart from "./Events/EventStart";
 
 /**
  * @todo Add timeout by action, or maybe by batch
@@ -21,10 +29,10 @@ export default class AsyncBatch<TDataType, TResponseType> {
 	private readonly queue: TDataType[] = [];
 	private readonly options: ICreateOptions;
 	private readonly emitter = new Emitter();
-	private readonly _events: Events<AsyncBatch<TDataType, TResponseType>, TDataType, TResponseType>;
+	private readonly _events: Events<AsyncBatch<TDataType, TResponseType>, TDataType, Awaited<TResponseType>>;
 
 	private constructor(private action: (data: TDataType) => TResponseType, options: Partial<ICreateOptions>) {
-		this._events = new Events<AsyncBatch<TDataType, TResponseType>, TDataType, TResponseType>(this.emitter);
+		this._events = new Events(this.emitter);
 		this.options = {
 			autoStart: options.autoStart ?? false,
 			maxConcurrency: options.maxConcurrency ?? 4,
@@ -34,7 +42,11 @@ export default class AsyncBatch<TDataType, TResponseType> {
 		this._isStarted = this.options.autoStart;
 	}
 
-	public static create<TDataType, TResponseType>(datas: TDataType[], action: (data: TDataType) => TResponseType, options: Partial<ICreateOptions> = {}): AsyncBatch<TDataType, TResponseType> {
+	public static create<TDataType, TResponseType>(
+		datas: TDataType[],
+		action: (data: TDataType) => TResponseType,
+		options: Partial<ICreateOptions> = {},
+	): AsyncBatch<TDataType, TResponseType> {
 		const asyncBatch = new this(action, options).addMany([...datas]);
 		setImmediate(() => asyncBatch.handleQueue());
 		return asyncBatch;
@@ -63,7 +75,7 @@ export default class AsyncBatch<TDataType, TResponseType> {
 		return this;
 	}
 
-	public get events(): Events<AsyncBatch<TDataType, TResponseType>, TDataType, TResponseType> {
+	public get events(): Events<AsyncBatch<TDataType, TResponseType>, TDataType, Awaited<TResponseType>> {
 		return this._events;
 	}
 
@@ -117,20 +129,20 @@ export default class AsyncBatch<TDataType, TResponseType> {
 	}
 
 	public clear(): AsyncBatch<TDataType, TResponseType> {
-		const eventWillCleared = new EventObject(this, EEvents.WILL_CLEARED, undefined, undefined, undefined, true);
-		this.emit(EEvents.WILL_CLEARED, eventWillCleared);
+		const eventBeforeCleare = new EventBeforeCleare(this);
+		this.emit(eventBeforeCleare);
 
-		if (eventWillCleared.preventedAction === true) return this;
+		if (eventBeforeCleare.preventedAction === true) return this;
 
 		this.queue.splice(0);
 
-		const eventOnCleared = new EventObject(this, EEvents.CLEARED);
-		this.emit(EEvents.CLEARED, eventOnCleared);
+		const eventOnCleared = new EventCleared(this);
+		this.emit(eventOnCleared);
 		return this;
 	}
 
-	private emit(eventName: EEvents, data: EventObject<AsyncBatch<TDataType, TResponseType> | TDataType, TDataType | unknown, TResponseType | unknown>): void {
-		this.emitter.emit(eventName, data);
+	private emit(data: EventBasic<AsyncBatch<TDataType, TResponseType> | TDataType>): void {
+		this.emitter.emit(data.type, data);
 	}
 
 	private async handleQueue(): Promise<void> {
@@ -144,7 +156,7 @@ export default class AsyncBatch<TDataType, TResponseType> {
 		 */
 		const endLoopStep = (data: TDataType, responseStored?: TResponseType, errorStored?: string | Error) => {
 			this.currentConcurrency--;
-			this.emit(EEvents.PROCESSING_ENDED, new EventObject(this, EEvents.PROCESSING_ENDED, data, responseStored, errorStored));
+			this.emit(new EventProcessingEnd(this, data, responseStored, errorStored));
 			deferredQueue.resolve(undefined);
 			deferredQueue = this.createDeferred();
 			this.mayEmitWaitingDatas(this.currentConcurrency);
@@ -156,25 +168,24 @@ export default class AsyncBatch<TDataType, TResponseType> {
 		const loopOnConcurrency = async (): Promise<void> => {
 			const data = this.queue.shift() as TDataType;
 
-			let responseStored: TResponseType | undefined = undefined;
-			let errorStored: string | Error | undefined = undefined;
-
 			if (!(await this.shouldPreserveData(data))) return endLoopStep(data);
-			if (!this.emitEachStarted(data)) return endLoopStep(data);
-
-			let eventObject: EventObject<this, TDataType, TResponseType>;
+			if (!this.emitProcessStarted(data)) return endLoopStep(data);
 
 			try {
-				responseStored = await this.callAction(data);
-				eventObject = new EventObject(this, EEvents.PROCESSING_SUCCESSED, data, responseStored, errorStored);
-			} catch (error) {
-				errorStored = error as string | Error;
-				eventObject = new EventObject(this, EEvents.PROCESSING_ERRORED, data, responseStored, errorStored);
-			}
+				const responseStored = await this.callAction(data);
+				const eventObject = new EventProcessingSuccess(this, data, responseStored);
 
-			this.emit(eventObject.type, eventObject);
-			endLoopStep(data, responseStored, errorStored);
-			return;
+				this.emit(eventObject);
+				endLoopStep(data, responseStored);
+				return;
+			} catch (error) {
+				const errorStored = error as string | Error;
+				const eventObject = new EventProcessingError(this, data, errorStored);
+
+				this.emit(eventObject);
+				endLoopStep(data, undefined, errorStored);
+				return;
+			}
 		};
 
 		while (true) {
@@ -218,10 +229,8 @@ export default class AsyncBatch<TDataType, TResponseType> {
 	 */
 	private async forPause(isAlreadyPaused: boolean, willPause: (willPause: boolean) => void): Promise<boolean> {
 		if (!this.isPaused) return this.isPaused;
-		const eventPausedObject = new EventObject(this, EEvents.PAUSED);
-		if (!isAlreadyPaused) {
-			this.emit(EEvents.PAUSED, eventPausedObject);
-		}
+		const eventPausedObject = new EventPaused(this);
+		if (!isAlreadyPaused) this.emit(eventPausedObject);
 		willPause(true);
 		await this.startDeferred.promise;
 		if (!isAlreadyPaused) {
@@ -235,7 +244,7 @@ export default class AsyncBatch<TDataType, TResponseType> {
 	 */
 	private mayEmitWaitingDatas(currentConcurrency: number): boolean {
 		if (currentConcurrency !== 0 || !this._isWaitingNewDatas) return false;
-		this.emit(EEvents.WAITING_NEW_DATAS, new EventObject(this, EEvents.WAITING_NEW_DATAS));
+		this.emit(new EventWaitNewDatas(this));
 		return true;
 	}
 
@@ -245,8 +254,8 @@ export default class AsyncBatch<TDataType, TResponseType> {
 	private async forWaitingNewDatas(currentConcurrency: number): Promise<boolean> {
 		if (this.queue.length === 0) {
 			this._isWaitingNewDatas = true;
-			const eventWaitingNewDatasObject = new EventObject(this, EEvents.WAITING_NEW_DATAS);
-			if (currentConcurrency === 0) this.emit(EEvents.WAITING_NEW_DATAS, eventWaitingNewDatasObject);
+			const eventWaitingNewDatasObject = new EventWaitNewDatas(this);
+			if (currentConcurrency === 0) this.emit(eventWaitingNewDatasObject);
 			await this.waitingDatasDeferred.promise;
 			this.waitingDatasDeferred = this.createDeferred();
 			return true;
@@ -260,16 +269,16 @@ export default class AsyncBatch<TDataType, TResponseType> {
 	 * @description Emit start only once after pause
 	 */
 	private mayEmitFirstStart() {
-		const eventStartedObject = new EventObject(this, EEvents.STARTED);
-		this.emit(EEvents.STARTED, eventStartedObject);
+		const eventStartedObject = new EventStart(this);
+		this.emit(eventStartedObject);
 	}
 
 	/**
 	 * @description Emit event for each started data
 	 */
-	private emitEachStarted(data: TDataType): boolean {
-		const eachStartedObject = new EventObject(this, EEvents.PROCESSING_STARTED, data, undefined, undefined, true);
-		this.emit(EEvents.PROCESSING_STARTED, eachStartedObject);
+	private emitProcessStarted(data: TDataType): boolean {
+		const eachStartedObject = new EventProcessingStart(this, data);
+		this.emit(eachStartedObject);
 		return !eachStartedObject.preventedAction;
 	}
 
