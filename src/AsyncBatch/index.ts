@@ -15,8 +15,8 @@ import EventBeforeCleare from "./Events/EventBeforeCleare";
 import EventStart from "./Events/EventStart";
 
 /**
- * @todo Add timeout by action, or maybe by batch
- * @example /src/examples/basic.ts
+ * @description AsyncBatch is a Typescript library designed for performing batched asynchronous tasks while controlling concurrency, all without relying on external dependencies
+ * @examples src/examples/basic.ts , src/examples/pagination.ts
  */
 export default class AsyncBatch<TDataType, TResponseType> {
 	private _isStarted = false;
@@ -42,6 +42,9 @@ export default class AsyncBatch<TDataType, TResponseType> {
 		this._isStarted = this.options.autoStart;
 	}
 
+	/**
+	 * @description Create method give you more control, you can listen to events or handle start, pause, stop, add, clear, etc...
+	 */
 	public static create<TDataType, TResponseType>(
 		datas: TDataType[],
 		action: (data: TDataType) => TResponseType,
@@ -52,6 +55,23 @@ export default class AsyncBatch<TDataType, TResponseType> {
 		return asyncBatch;
 	}
 
+	/**
+	 * @description This is a lightwight version of create method
+	 * @returns Promise<void> resolved when all jobs are done (empty queue)
+	 */
+	public static run<TDataType, TResponseType>(
+		datas: TDataType[],
+		action: (data: TDataType) => TResponseType,
+		options: Omit<Partial<ICreateOptions>, "autoStart"> = {},
+	): Promise<void> {
+		const asyncBatch = new this(action, { ...options, autoStart: true }).addMany([...datas]);
+		setImmediate(() => asyncBatch.handleQueue());
+		return asyncBatch.events.onEmptyPromise().then(() => Promise.resolve());
+	}
+
+	/**
+	 * @description Add data to the queue any time
+	 */
 	public add = (() => {
 		let clearImmediateId: ReturnType<typeof setImmediate>;
 		return (...data: TDataType[]): AsyncBatch<TDataType, TResponseType> => {
@@ -65,32 +85,53 @@ export default class AsyncBatch<TDataType, TResponseType> {
 		};
 	})();
 
+	/**
+	 * @description Add many datas to the queue any time
+	 */
 	public addMany(datas: TDataType[]): AsyncBatch<TDataType, TResponseType> {
 		this.add(...datas);
 		return this;
 	}
 
+	/**
+	 * @description Update the action any time
+	 */
 	public updateAction(action: NonNullable<typeof this.action>): AsyncBatch<TDataType, TResponseType> {
 		this.action = action;
 		return this;
 	}
 
+	/**
+	 * @description Events accessor, Ability to listen to many events 
+	 */
 	public get events(): Events<AsyncBatch<TDataType, TResponseType>, TDataType, Awaited<TResponseType>> {
 		return this._events;
 	}
 
+	/**
+	 * @returns boolean true if the queue is paused
+	 */
 	public get isPaused(): boolean {
 		return !this._isStarted;
 	}
 
+	/**
+	 * @returns boolean true if the queue is started
+	 */
 	public get isStarted(): boolean {
 		return this._isStarted;
 	}
 
+	/**
+	 * @returns boolean true if the queue is empty or is waiting for new datas
+	 */
 	public get isWaitingNewDatas(): boolean {
 		return this._isWaitingNewDatas;
 	}
 
+	/**
+	 * @description Start the queue if it's not started yet
+	 */
 	public start(): AsyncBatch<TDataType, TResponseType> {
 		if (this._isStarted) return this;
 		this._isStarted = true;
@@ -99,6 +140,7 @@ export default class AsyncBatch<TDataType, TResponseType> {
 	}
 
 	/**
+	 * @description Request to pause the queue, the queue will pause just after the current action is done
 	 * @alias !start
 	 */
 	public requestPause(): AsyncBatch<TDataType, TResponseType> {
@@ -108,26 +150,39 @@ export default class AsyncBatch<TDataType, TResponseType> {
 	}
 
 	/**
+	 * @description Stop | Pause the queue, the queue will stop just after the current action is done
 	 * @alias pause
 	 */
 	public stop(): AsyncBatch<TDataType, TResponseType> {
 		return this.requestPause();
 	}
 
+	/**
+	 * @returns The current concurrency index
+	 */
 	public getCurrentConcurrency(): number {
 		return this.currentConcurrency;
 	}
 
+	/**
+	 * @description Update the max concurrency any time. If you set a lower value than the previous, it will be applied as soon as possible
+	 */
 	public updateMaxConcurrency(maxConcurrency: number): AsyncBatch<TDataType, TResponseType> {
 		this.options.maxConcurrency = maxConcurrency;
 		return this;
 	}
 
+	/**
+	 * @description Add a filter when you need to exclude some datas to be processed
+	 */
 	public setFilter(filter: typeof this.filter): AsyncBatch<TDataType, TResponseType> {
 		this.filter = filter;
 		return this;
 	}
 
+	/**
+	 * @description Clear the queue
+	 */
 	public clear(): AsyncBatch<TDataType, TResponseType> {
 		const eventBeforeCleare = new EventBeforeCleare(this);
 		this.emit(eventBeforeCleare);

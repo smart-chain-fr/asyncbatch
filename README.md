@@ -1,6 +1,6 @@
 # AsyncBatch
 
-AsyncBatch is a JavaScript library designed for performing batched asynchronous tasks while controlling concurrency, all without relying on external dependencies. This README offers an introduction to the library's capabilities and instructions on its efficient usage.
+AsyncBatch is a TypeScript library designed for performing batched asynchronous tasks while controlling concurrency, all without relying on external dependencies. This README offers an introduction to the library's capabilities and instructions on its efficient usage.
 
 ## Installation
 
