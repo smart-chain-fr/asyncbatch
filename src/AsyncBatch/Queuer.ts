@@ -60,5 +60,6 @@ export default class Queuer<TDataType> {
 
 	public clear() {
 		this.store.splice(0);
+		this._generator = null;
 	}
 }
