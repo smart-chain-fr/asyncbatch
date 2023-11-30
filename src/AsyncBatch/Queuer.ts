@@ -1,50 +1,26 @@
-enum IStoreType {
-	SINGLE = "SINGLE",
-	MANY = "MANY",
-}
-
-type TDataTypes<TDataType> = TDataType | TDataType[] | Generator<TDataType>;
-
-class Store<TDataType> {
-	constructor(public value: TDataTypes<TDataType>, public type: IStoreType) {}
-}
+type TDataTypes<TDataType> = TDataType[] | Generator<TDataType>;
 
 export default class Queuer<TDataType> {
-	private store: Store<TDataType>[] = [];
+	private stores: TDataTypes<TDataType>[] = [];
 	private _hasDatas = false;
 	private _generator: Generator<TDataType> | null = null;
 	public push(...datas: TDataType[]) {
-		this.store.push(
-			...datas.map((data) => {
-				return new Store(data, IStoreType.SINGLE);
-			}),
-		);
+		this.stores.push(datas);
 	}
 
 	public unshift(...datas: TDataType[]) {
-		this.store.unshift(
-			...datas.map((data) => {
-				return new Store(data, IStoreType.SINGLE);
-			}),
-		);
+		this.stores.unshift(datas);
 	}
 
 	public pushMany(datas: TDataType[] | Generator<TDataType>) {
-		this.store.push(new Store(datas, IStoreType.MANY));
+		this.stores.push(datas);
 	}
 
 	private *generator() {
-		while (this.store.length > 0) {
-			const store = this.store.shift()!;
-			switch (store.type) {
-				case IStoreType.SINGLE:
-					yield store.value as TDataType;
-					break;
-				case IStoreType.MANY:
-					for (const data of store.value as TDataType[]) {
-						yield data;
-					}
-					break;
+		while (this.stores.length > 0) {
+			const store = this.stores.shift()!;
+			for (const data of store) {
+				yield data;
 			}
 		}
 		this._generator = null;
@@ -59,7 +35,7 @@ export default class Queuer<TDataType> {
 	}
 
 	public clear() {
-		this.store.splice(0);
+		this.stores.splice(0);
 		this._generator = null;
 	}
 }
