@@ -32,7 +32,7 @@ const asyncBatch = AsyncBatch.create(datas(0), simpleAction, {
 	autoStart: true,
 	rateLimit: { msTimeRange: 200, maxExecution: 4 },
 });
-console.log("starting with max concurrency of 4 and rate limit of 4 per 1000ms");
+console.log("starting with max concurrency of 4 and rate limit of 4 per 200ms");
 // All events are automatically garbage collected when the AsyncBatch is also garbage collected
 
 let done = false;
