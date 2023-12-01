@@ -150,8 +150,6 @@ The AsyncBatch library provides a sophisticated event handling mechanism, allowi
 
 #### Batch Start and Pause Events
 
-> These events notify you when the batch processing starts and when it's paused. They can be used to perform any actions that need to be taken when the batch processing starts or pauses.
-
 ```ts
 asyncBatch.events.onStarted(() => {
   console.log("Batch processing started");
@@ -161,31 +159,31 @@ asyncBatch.events.onPaused(() => {
   console.log("Batch processing paused");
 });
 ```
-
+ These events notify you when the batch processing starts and when it's paused. They can be used to perform any actions that need to be taken when the batch processing starts or pauses.
 
 #### Processing Events
 ##### Processing Start Event
 
-> This event is triggered when the processing of an item starts. The event parameter provides details about the ongoing process.
+
 ```ts
 asyncBatch.events.onProcessingStart((event) => {
   console.log("Processing started for data:", event.data);
 });
 ```
-
+This event is triggered when the processing of an item starts. The event parameter provides details about the ongoing process.
 
 ##### Processing Success Event
-> This event is triggered when the processing of an item succeeds or fails. The event parameter provides details about the ongoing process.
+
 ```ts
 asyncBatch.events.onProcessingSuccess(({ data, response }) => {
   console.log("Processing succeeded for data:", data);
   console.log("Succes response:", response);
 });
 ```
-
+This event is triggered when the processing of an item succeeds or fails. The event parameter provides details about the ongoing process.
 
 ##### Processing End Event
-> This event is triggered when the processing of an item ends, providing the data, response, and any error that occurred.
+
 ```ts
 asyncBatch.events.onProcessingEnd(({ data, response, error }) => {
 if(error) {
@@ -196,19 +194,18 @@ if(error) {
     console.log("Succes response:", response);
 });
 ```
-
+This event is triggered when the processing of an item ends, providing the data, response, and any error that occurred.
 ##### Processing Error Event
 
-> This event is triggered when error is occured.
 ```ts
 asyncBatch.events.onProcessingError(({ error }) => {
   console.log("Error during processing:", error);
 });
 ```
+This event is triggered when error is occured.
 
 
-
-#### Waiting for New Data
+##### Waiting for New Data
 The onWaitingNewDatas event is triggered when the batch processing reaches a point where it has processed all the available data and is waiting for new data to continue. In this specific example, it fetches paginated user data from a database and adds it to the batch for further processing. If the maximum page limit (maxPage) is reached, the batch processing is stopped, ensuring that only a specified amount of data is processed from the database.
 
 ```ts
