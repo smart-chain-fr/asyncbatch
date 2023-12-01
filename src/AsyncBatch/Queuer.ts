@@ -2,7 +2,6 @@ type TDataTypes<TDataType> = TDataType[] | Generator<TDataType>;
 
 export default class Queuer<TDataType> {
 	private stores: TDataTypes<TDataType>[] = [];
-	private _hasDatas = false;
 	private _generator: Generator<TDataType> | null = null;
 	public push(...datas: TDataType[]) {
 		this.stores.push(datas);
@@ -28,10 +27,6 @@ export default class Queuer<TDataType> {
 
 	public pull() {
 		return (this._generator ??= this.generator());
-	}
-
-	public get hasDatas() {
-		return this._hasDatas;
 	}
 
 	public clear() {
