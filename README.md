@@ -16,7 +16,7 @@ To use the AsyncBatch library, you have two primary approaches: using the create
 
 ### Using the `run` Method
 
-Alternatively, you can use the run method for a more streamlined approach:
+To begin with the run method:
 
 ```ts
 import { AsyncBatch } from '@smart-chain-fr/asyncbatch';
@@ -27,7 +27,7 @@ await AsyncBatch.run(datas, simpleAction, options);
 The `run` method is particularly useful for simpler use cases where you want to quickly set up and start your batch process. It automatically creates and starts the AsyncBatch instance for you. this method offers a convenient and efficient way to execute batch tasks with minimal setup. It's ideal for straightforward use cases.
 
 ### Using the `create` Method
-To begin with the create method:
+Alternatively, you can use the create method to create an AsyncBatch instance and start the batch process:
 
 ```ts
 import { AsyncBatch } from '@smart-chain-fr/asyncbatch';
