@@ -162,14 +162,15 @@ asyncBatch.events.onPaused(() => {
 These events notify you when the batch processing starts and when it's paused.
 
 #### Processing Events
-
+##### Processing Start Event
 ```ts
 asyncBatch.events.onProcessingStart((event) => {
   console.log("Processing started for data:", event.data);
 });
 ```
 This event is triggered when the processing of an item starts. The event parameter provides details about the ongoing process.
-----------------------------------------------------------------------------------------------------------------------------
+
+##### Processing Success Event
 ```ts
 asyncBatch.events.onProcessingSuccess(({ data, response }) => {
   console.log("Processing succeeded for data:", data);
@@ -177,7 +178,8 @@ asyncBatch.events.onProcessingSuccess(({ data, response }) => {
 });
 ```
 This event is triggered when the processing of an item succeeds or fails. The event parameter provides details about the ongoing process.
-----------------------------------------------------------------------------------------------------------------------------
+
+##### Processing End Event
 ```ts
 asyncBatch.events.onProcessingEnd(({ data, response, error }) => {
 if(error) {
@@ -189,14 +191,16 @@ if(error) {
 });
 ```
 This event is triggered when the processing of an item ends, providing the data, response, and any error that occurred.
-----------------------------------------------------------------------------------------------------------------------------
+
+##### Processing Error Event
+
 ```ts
 asyncBatch.events.onProcessingError(({ error }) => {
   console.log("Error during processing:", error);
 });
 ```
 This event is triggered when error is occured.
-----------------------------------------------------------------------------------------------------------------------------
+
 
 #### Waiting for New Data
 The onWaitingNewDatas event is triggered when the batch processing reaches a point where it has processed all the available data and is waiting for new data to continue. In this specific example, it fetches paginated user data from a database and adds it to the batch for further processing. If the maximum page limit (maxPage) is reached, the batch processing is stopped, ensuring that only a specified amount of data is processed from the database.
