@@ -14,18 +14,6 @@ yarn add @smart-chain-fr/asyncbatch
 ## Basic Usage
 To use the AsyncBatch library, you have two primary approaches: using the create method or the run method. Each method offers different levels of control and simplicity based on your requirements.
 
-### Using the `create` Method
-To begin with the create method:
-
-```ts
-import { AsyncBatch } from '@smart-chain-fr/asyncbatch';
-
-// Create an instance of AsyncBatch
-const asyncBatch = AsyncBatch.create(datas, simpleAction).start();
-```
-
-This example demonstrates creating an AsyncBatch instance, defining an asynchronous action function, and starting the processing of data.
-
 ### Using the `run` Method
 
 Alternatively, you can use the run method for a more streamlined approach:
@@ -36,20 +24,21 @@ import { AsyncBatch } from '@smart-chain-fr/asyncbatch';
 // Run the batch process
 await AsyncBatch.run(datas, simpleAction, options);
 ```
-The run method is particularly useful for simpler use cases where you want to quickly set up and start your batch process. It automatically creates and starts the AsyncBatch instance for you.
+The `run` method is particularly useful for simpler use cases where you want to quickly set up and start your batch process. It automatically creates and starts the AsyncBatch instance for you. this method offers a convenient and efficient way to execute batch tasks with minimal setup. It's ideal for straightforward use cases.
 
-### Key Differences
+### Using the `create` Method
+To begin with the create method:
 
-- The `create` method provides granular control over the batch process, allowing you to configure, start, pause, and resume the batch process as needed as well as using the event emitter to handle events.
-- The `run` method offers a convenient and efficient way to execute batch tasks with minimal setup. It's ideal for straightforward use cases.
+```ts
+import { AsyncBatch } from '@smart-chain-fr/asyncbatch';
 
-## Advanced Usage
-### Creating an AsyncBatch Instance
-To create an AsyncBatch instance, you need to provide the following parameters:
+// Create an instance of AsyncBatch
+const asyncBatch = AsyncBatch.create(datas, simpleAction).start();
+```
 
-- `dataArray`: An array of data to be processed. Each item in the array will be passed to the action function.
-- `asyncAction`: An asynchronous function that will be called for each item in the data array. The function should accept a single parameter, which will be an item from the data array.
-- `options`: An optional object that can be used to configure the AsyncBatch instance. See the [Options](#options) section for more details.
+This example demonstrates creating an AsyncBatch instance, defining an asynchronous action function, and starting the processing of data items. 
+the `create` method is ideal for more complex use cases where you need more control over the batch process. It allows you to configure the batch process, start and pause it, and resume it later as needed. It also provides an event emitter that can be used to handle events.
+See the [Advanced Usage](#advanced-usage) section for more details.
 
 ### Options
 The AsyncBatch constructor accepts an optional `options` parameter that can be used to configure the instance. The following options are available:
@@ -71,6 +60,16 @@ const options = {
 const asyncBatch = AsyncBatch.create(dataArray, asyncAction, options);
 
 ```
+
+## Advanced Usage
+### Creating an AsyncBatch Instance
+To create an AsyncBatch instance, you need to provide the following parameters:
+
+- `dataArray`: An array of data to be processed. Each item in the array will be passed to the action function.
+- `asyncAction`: An asynchronous function that will be called for each item in the data array. The function should accept a single parameter, which will be an item from the data array.
+- `options`: An optional object that can be used to configure the AsyncBatch instance. See the [Options](#options) section for more details.
+
+
 
 ### Practical Example
 #### Asynchronous Batch Processing with EtherScan API
@@ -127,8 +126,11 @@ asyncBatch.events.onProcessingEnd(({ data, response, error }) => {
   console.log(`Owner addresses for token ID ${data}:`, response);
 });
 
-```
+asyncBatch.events.onProcessingError(({ error }) => {
+  console.log('Error during processing:', error);
+});
 
+```
 
 ### Additional Features
 
@@ -144,7 +146,7 @@ The `AsyncBatch` library offers additional features and methods that can be used
 - `clear()`: Clear the batch queue.
 
 ### Handling Events
-The AsyncBatch library provides an event emitter that can be used to handle events. Here's a detailed breakdown of how to handle specific events using the provided example:
+The AsyncBatch library provides a sophisticated event handling mechanism, allowing you to listen to a variety of events that occur during the batch processing. Each event provides specific information relevant to the stage of processing it represents. Here's how you can use these events:
 
 #### Batch Start and Pause Events
 
@@ -165,18 +167,35 @@ These events notify you when the batch processing starts and when it's paused.
 asyncBatch.events.onProcessingStart((event) => {
   console.log("Processing started for data:", event.data);
 });
+```
+This event is triggered when the processing of an item starts. The event parameter provides details about the ongoing process.
 
+```ts
+asyncBatch.events.onProcessingSuccess(({ type, data, response }) => {
+  if (type === "success") {
+    console.log("Processing succeeded for data:", data);
+    console.log("Response:", response);
+  } else {
+    console.log("Processing failed for data:", data);
+});
+```
+This event is triggered when the processing of an item succeeds or fails. The event parameter provides details about the ongoing process.
+
+```ts
 asyncBatch.events.onProcessingEnd(({ data, response, error }) => {
   console.log("Processing ended for data:", data);
   console.log("Succes response:", response);
   console.log("Error:", error);
 });
+```
+This event is triggered when the processing of an item ends, providing the data, response, and any error that occurred.
 
+```ts
 asyncBatch.events.onProcessingError(({ error }) => {
   console.log("Error during processing:", error);
 });
 ```
-These events notify you when processing starts for an item in the data array, when processing ends, and when an error occurs during processing.
+This event is triggered when an error occurs during the processing of an item.
 
 #### Waiting for New Data
 The onWaitingNewDatas event in this code is a callback triggered when the batch processing reaches a point where it has processed all the available data and is waiting for new data to continue. In this specific example, it fetches paginated user data from a database and adds it to the batch for further processing. If the maximum page limit (maxPage) is reached, the batch processing is stopped, ensuring that only a specified amount of data is processed from the database.
@@ -207,9 +226,33 @@ asyncBatch.events.onWaitingNewDatas(async() => {
 ```
 This event is triggered when the batch is waiting for new data, and it demonstrates how to add more data dynamically to the batch.
 
-## Sample Code
+## Code Samples
 
-For more detailed information and examples, please refer to the library's example file located at [/src/examples/basic.ts](/src/examples/basic.ts).
+To demonstrate the practical applications and versatility of the AsyncBatch library, we have provided several example files. These examples cover different scenarios and usage patterns, helping you to understand how to integrate AsyncBatch into your projects effectively.
+
+### Basic Example (`basic.ts`)
+
+This example demonstrates the basic usage of AsyncBatch. It shows how to create an AsyncBatch instance, define an asynchronous action function, and start the processing of data items.
+
+[View the Basic Example](/src/examples/basic.ts)
+
+### Generators Example (`generators.ts`)
+
+This example illustrates how AsyncBatch can be used with generators. Generators are an excellent way to process large amounts of data without loading everything into memory. 
+
+In this example, a generator function is used to produce data, and the AsyncBatch processes each item with a simple action. The example demonstrates adding new data dynamically and listening to various processing events, providing insight into handling large datasets efficiently.
+
+[View the Generators Example](/src/examples/generators.ts)
+
+### Pagination Example (`pagination.ts`)
+
+This example shows how to use AsyncBatch for pagination. It simulates fetching paginated user data from a database and adding it to the batch for processing. 
+
+In this scenario, AsyncBatch starts with an empty data set and awaits new data through the `onWaitingNewDatas` event. As each page of data is retrieved and processed, new pages are fetched and added until the maximum page limit is reached. This approach is particularly useful when dealing with large data sets that cannot be loaded into memory all at once.
+
+[View the Pagination Example](/src/examples/pagination.ts)
+
+These examples are just a starting point to explore the capabilities of AsyncBatch. They demonstrate the library's flexibility in handling various types of data sources and processing requirements. Feel free to dive into these examples for a deeper understanding of how AsyncBatch can be integrated into your specific use case.
 
 ## Contributing
 
