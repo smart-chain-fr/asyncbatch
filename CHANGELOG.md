@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.5] - 2023-12-01
+### Changed
+removed publish script from package.json to avoid confusion with npm publish command, which is the recommended way to publish a package to npm.
+adding building script to prepublishOnly script to ensure that the package is built before publishing it to npm.
+
 ## [1.1.4] - 2023-12-01
 ### Changed
-publish script to include in package.json
+publish script to be included in package.json
 
 ## [1.1.3] - 2023-12-01
 ### Changed

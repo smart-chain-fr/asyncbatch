@@ -1,12 +1,12 @@
 {
 	"name": "@smart-chain-fr/asyncbatch",
-	"version": "1.1.4",
+	"version": "1.1.5",
 	"description": "Asynchronously process task batches",
 	"main": "lib/main.js",
 	"types": "lib/main.d.ts",
 	"scripts": {
 		"prepare": "npm run build",
-		"prepublishOnly": "npm test",
+		"prepublishOnly": "npm run build && npm test",
 		"version": "npm run format && git add -A src",
 		"postversion": "git push && git push --tags",
 		"start": "node ./lib/main.js",
@@ -17,8 +17,7 @@
 		"test": "jest --config jestconfig.json",
 		"example-basic": "tsc && node ./lib/examples/basic.js",
 		"example-pagination": "tsc && node ./lib/examples/pagination.js",
-		"example-generators": "tsc && node ./lib/examples/generators.js",
-		"publish": "npm run prepare && npm publish --access public"
+		"example-generators": "tsc && node ./lib/examples/generators.js"
 	},
 	"files": [
 		"lib/**/*"
