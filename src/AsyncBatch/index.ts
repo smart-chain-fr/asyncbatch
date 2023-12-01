@@ -13,10 +13,11 @@ import EventPaused from "./Events/EventPaused";
 import EventCleared from "./Events/EventCleared";
 import EventBeforeCleare from "./Events/EventBeforeCleare";
 import EventStart from "./Events/EventStart";
+import Queuer from "./Queuer";
 
 /**
- * @description AsyncBatch is a Typescript library designed for performing batched asynchronous tasks while controlling concurrency, all without relying on external dependencies
- * @examples src/examples/basic.ts , src/examples/pagination.ts
+ * AsyncBatch is a Typescript library designed for performing batched asynchronous tasks while controlling concurrency, all without relying on external dependencies
+ * @examples src/examples/basic.ts , src/examples/pagination.ts, src/examples/generators.ts
  */
 export default class AsyncBatch<TDataType, TResponseType> {
 	private _isStarted = false;
@@ -26,7 +27,7 @@ export default class AsyncBatch<TDataType, TResponseType> {
 	private startDeferred = this.createDeferred();
 	private filter: ((data: TDataType) => boolean) | ((data: TDataType) => Promise<boolean>) | null = null;
 
-	private readonly queue: TDataType[] = [];
+	private readonly queue: Queuer<TDataType> = new Queuer<TDataType>();
 	private readonly options: ICreateOptions;
 	private readonly emitter = new Emitter();
 	private readonly _events: Events<AsyncBatch<TDataType, TResponseType>, TDataType, Awaited<TResponseType>>;
@@ -46,11 +47,11 @@ export default class AsyncBatch<TDataType, TResponseType> {
 	 * @description Create method give you more control, you can listen to events or handle start, pause, stop, add, clear, etc...
 	 */
 	public static create<TDataType, TResponseType>(
-		datas: TDataType[],
+		datas: TDataType[] | Generator<TDataType>,
 		action: (data: TDataType) => TResponseType,
 		options: Partial<ICreateOptions> = {},
 	): AsyncBatch<TDataType, TResponseType> {
-		const asyncBatch = new this(action, options).addMany([...datas]);
+		const asyncBatch = new this(action, options).addMany(datas);
 		setImmediate(() => asyncBatch.handleQueue());
 		return asyncBatch;
 	}
@@ -60,11 +61,11 @@ export default class AsyncBatch<TDataType, TResponseType> {
 	 * @returns Promise<void> resolved when all jobs are done (empty queue)
 	 */
 	public static run<TDataType, TResponseType>(
-		datas: TDataType[],
+		datas: TDataType[] | Generator<TDataType>,
 		action: (data: TDataType) => TResponseType,
 		options: Omit<Partial<ICreateOptions>, "autoStart"> = {},
 	): Promise<void> {
-		const asyncBatch = new this(action, { ...options, autoStart: true }).addMany([...datas]);
+		const asyncBatch = new this(action, { ...options, autoStart: true }).addMany(datas);
 		setImmediate(() => asyncBatch.handleQueue());
 		return asyncBatch.events.onEmptyPromise().then(() => Promise.resolve());
 	}
@@ -72,24 +73,18 @@ export default class AsyncBatch<TDataType, TResponseType> {
 	/**
 	 * @description Add data to the queue any time
 	 */
-	public add = (() => {
-		let clearImmediateId: ReturnType<typeof setImmediate>;
-		return (...data: TDataType[]): AsyncBatch<TDataType, TResponseType> => {
-			this.queue.push(...data);
-
-			if (this.isWaitingNewDatas) {
-				clearImmediate(clearImmediateId);
-				clearImmediateId = setImmediate(() => this.waitingDatasDeferred.resolve(undefined));
-			}
-			return this;
-		};
-	})();
+	public add(...datas: TDataType[]): AsyncBatch<TDataType, TResponseType> {
+		this.queue.push(...datas);
+		this.unWaitNewDatas();
+		return this;
+	}
 
 	/**
 	 * @description Add many datas to the queue any time
 	 */
-	public addMany(datas: TDataType[]): AsyncBatch<TDataType, TResponseType> {
-		this.add(...datas);
+	public addMany(datas: TDataType[] | Generator<TDataType>): AsyncBatch<TDataType, TResponseType> {
+		this.queue.pushMany(datas);
+		this.unWaitNewDatas();
 		return this;
 	}
 
@@ -102,7 +97,7 @@ export default class AsyncBatch<TDataType, TResponseType> {
 	}
 
 	/**
-	 * @description Events accessor, Ability to listen to many events 
+	 * @description Events accessor, Ability to listen to many events
 	 */
 	public get events(): Events<AsyncBatch<TDataType, TResponseType>, TDataType, Awaited<TResponseType>> {
 		return this._events;
@@ -189,7 +184,7 @@ export default class AsyncBatch<TDataType, TResponseType> {
 
 		if (eventBeforeCleare.preventedAction === true) return this;
 
-		this.queue.splice(0);
+		this.queue.clear();
 
 		const eventOnCleared = new EventCleared(this);
 		this.emit(eventOnCleared);
@@ -220,9 +215,7 @@ export default class AsyncBatch<TDataType, TResponseType> {
 		/**
 		 * @description Loop on the queue and call the action on each data
 		 */
-		const loopOnConcurrency = async (): Promise<void> => {
-			const data = this.queue.shift() as TDataType;
-
+		const loopOnConcurrency = async (data: TDataType): Promise<void> => {
 			if (!(await this.shouldPreserveData(data))) return endLoopStep(data);
 			if (!this.emitProcessStarted(data)) return endLoopStep(data);
 
@@ -243,12 +236,22 @@ export default class AsyncBatch<TDataType, TResponseType> {
 			}
 		};
 
+		let storedValue: TDataType | null = null;
 		while (true) {
 			let isPreviouslyPaused = await this.forPause(isAlreadyPaused, (willPause) => {
 				isAlreadyPaused = willPause;
 			});
 
-			await this.forWaitingNewDatas(this.currentConcurrency);
+			if (!storedValue) {
+				let nextData: IteratorResult<TDataType, void>;
+				do {
+					nextData = this.queue.pull().next();
+				} while (await this.mayWaitNewDatas(nextData, this.currentConcurrency));
+
+				if (nextData.done) throw new Error("Queue should not be empty at this point");
+
+				storedValue = nextData.value;
+			}
 
 			if (isPreviouslyPaused || isPausedInit) {
 				isAlreadyPaused = false;
@@ -270,7 +273,8 @@ export default class AsyncBatch<TDataType, TResponseType> {
 
 			callNumber++;
 
-			loopOnConcurrency();
+			loopOnConcurrency(storedValue);
+			storedValue = null;
 
 			if (this.currentConcurrency === this.options.maxConcurrency) {
 				await deferredQueue.promise;
@@ -294,6 +298,15 @@ export default class AsyncBatch<TDataType, TResponseType> {
 		return !this.isPaused;
 	}
 
+	private unWaitNewDatas = (() => {
+		let clearImmediateId: ReturnType<typeof setImmediate>;
+		return (): void => {
+			if (!this.isWaitingNewDatas) return;
+			clearImmediate(clearImmediateId);
+			clearImmediateId = setImmediate(() => this.waitingDatasDeferred.resolve(undefined));
+		};
+	})();
+
 	/**
 	 * @description Emit event when the queue is waiting for datas
 	 */
@@ -306,8 +319,8 @@ export default class AsyncBatch<TDataType, TResponseType> {
 	/**
 	 * @description Handle the waiting of new datas
 	 */
-	private async forWaitingNewDatas(currentConcurrency: number): Promise<boolean> {
-		if (this.queue.length === 0) {
+	private async mayWaitNewDatas(nextData: IteratorResult<TDataType, void>, currentConcurrency: number): Promise<boolean> {
+		if (nextData.done) {
 			this._isWaitingNewDatas = true;
 			const eventWaitingNewDatasObject = new EventWaitNewDatas(this);
 			if (currentConcurrency === 0) this.emit(eventWaitingNewDatasObject);

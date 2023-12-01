@@ -26,7 +26,6 @@ const simpleAction = async (data: number) => {
 	 * In this example we used the run method but you can also use the create method to give you more control
 	 * Here we use the static run method to run the batch
 	 * We set the max concurrency to 4
-	 * We set the rate limit to 8 executions per 200ms
 	 * When you use the run method the AsyncBatch is automatically started
 	 * Await the run method to wait for the end of the batch
 	 */

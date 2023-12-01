@@ -9,6 +9,7 @@ Because we start without datas, the batch will trigger immediately the onWaiting
 In this event we fetch the paginated users id and add them to the batch.
 
 This use case is useful when you want to process a lot of datas but you don't want to overload your memory by fetching all the datas at once
+Use can also use generators as datas to do the same thing, see the generators.ts example but with more elegant code.
 */
 
 import AsyncBatch from "../AsyncBatch";

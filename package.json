@@ -13,10 +13,11 @@
 		"example-start-basic": "node ./lib/examples/basic.js",
 		"build": "tsc",
 		"dev": "tsc && npm run start",
+		"format": "prettier --write \"src/**/*.ts\"",
+		"test": "jest --config jestconfig.json",
 		"example-basic": "tsc && node ./lib/examples/basic.js",
 		"example-pagination": "tsc && node ./lib/examples/pagination.js",
-		"format": "prettier --write \"src/**/*.ts\"",
-		"test": "jest --config jestconfig.json"
+		"example-generators": "tsc && node ./lib/examples/generators.js"
 	},
 	"files": [
 		"lib/**/*"
