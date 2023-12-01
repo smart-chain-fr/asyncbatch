@@ -37,7 +37,7 @@ const asyncBatch = AsyncBatch.create(datas, simpleAction).start();
 ```
 
 This example demonstrates creating an AsyncBatch instance, defining an asynchronous action function, and starting the processing of data items. 
-the `create` method is ideal for more complex use cases where you need more control over the batch process. It allows you to configure the batch process, start and pause it, and resume it later as needed. It also provides an event emitter that can be used to handle events.
+the `create` method is ideal for more complex use cases where you need more control over the batch process. It allows you to configure the batch process, start and pause it, and resume it later as needed. It also provides an event listeners that can be used to handle events.
 See the [Advanced Usage](#advanced-usage) section for more details.
 
 ### Options
@@ -65,7 +65,7 @@ const asyncBatch = AsyncBatch.create(dataArray, asyncAction, options);
 ### Creating an AsyncBatch Instance
 To create an AsyncBatch instance, you need to provide the following parameters:
 
-- `dataArray`: An array of data to be processed. Each item in the array will be passed to the action function.
+- `dataArray`: An array of data or Generator to be processed. Each item in the Iterator will be passed to the action function.
 - `asyncAction`: An asynchronous function that will be called for each item in the data array. The function should accept a single parameter, which will be an item from the data array.
 - `options`: An optional object that can be used to configure the AsyncBatch instance. See the [Options](#options) section for more details.
 
@@ -169,36 +169,37 @@ asyncBatch.events.onProcessingStart((event) => {
 });
 ```
 This event is triggered when the processing of an item starts. The event parameter provides details about the ongoing process.
-
+----------------------------------------------------------------------------------------------------------------------------
 ```ts
-asyncBatch.events.onProcessingSuccess(({ type, data, response }) => {
-  if (type === "success") {
-    console.log("Processing succeeded for data:", data);
-    console.log("Response:", response);
-  } else {
-    console.log("Processing failed for data:", data);
+asyncBatch.events.onProcessingSuccess(({ data, response }) => {
+  console.log("Processing succeeded for data:", data);
+  console.log("Succes response:", response);
 });
 ```
 This event is triggered when the processing of an item succeeds or fails. The event parameter provides details about the ongoing process.
-
+----------------------------------------------------------------------------------------------------------------------------
 ```ts
 asyncBatch.events.onProcessingEnd(({ data, response, error }) => {
-  console.log("Processing ended for data:", data);
-  console.log("Succes response:", response);
-  console.log("Error:", error);
+if(error) {
+    console.log("Processing failed for data:", data);
+    console.log("Error:", error);
+} else {
+    console.log("Processing succeeded for data:", data);
+    console.log("Succes response:", response);
 });
 ```
 This event is triggered when the processing of an item ends, providing the data, response, and any error that occurred.
-
+----------------------------------------------------------------------------------------------------------------------------
 ```ts
 asyncBatch.events.onProcessingError(({ error }) => {
   console.log("Error during processing:", error);
 });
 ```
-This event is triggered when an error occurs during the processing of an item.
+This event is triggered when error is occured.
+----------------------------------------------------------------------------------------------------------------------------
 
 #### Waiting for New Data
-The onWaitingNewDatas event in this code is a callback triggered when the batch processing reaches a point where it has processed all the available data and is waiting for new data to continue. In this specific example, it fetches paginated user data from a database and adds it to the batch for further processing. If the maximum page limit (maxPage) is reached, the batch processing is stopped, ensuring that only a specified amount of data is processed from the database.
+The onWaitingNewDatas event is triggered when the batch processing reaches a point where it has processed all the available data and is waiting for new data to continue. In this specific example, it fetches paginated user data from a database and adds it to the batch for further processing. If the maximum page limit (maxPage) is reached, the batch processing is stopped, ensuring that only a specified amount of data is processed from the database.
 
 ```ts
 
