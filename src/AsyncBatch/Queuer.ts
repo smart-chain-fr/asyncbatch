@@ -1,45 +1,30 @@
-type TDataTypes<TDataType> = TDataType[] | Generator<TDataType>;
+export type TQDataTypes<TDataType> = TDataType[] | Generator<TDataType> | AsyncGenerator<TDataType>;
 
 /**
  * Queuer is a simple class that allow you to push datas in a queue and pull them with a generator
  */
 export default class Queuer<TDataType> {
-
 	/**
 	 * It stores groups of pushed datas
 	 * The original array datas are stored and never modified, it keeps the reference and avoid to copy the datas
 	 */
-	private stores: TDataTypes<TDataType>[] = [];
-	private _generator: Generator<TDataType> | null = null;
+	private stores: TQDataTypes<TDataType>[] = [];
+	private _generator: Generator<TDataType> | AsyncGenerator<TDataType> | null = null;
 
 	/**
-	 * Push datas in the queue with one or more arguments
+	 * Push datas in the queue
 	 */
-	public push(...datas: TDataType[]) {
-		this.stores.push(datas);
-	}
-
-	/**
-	 * Push datas in the queue with one or more arguments at the beginning of the queue
-	 */
-	public unshift(...datas: TDataType[]) {
-		this.stores.unshift(datas);
-	}
-
-	/**
-	 * Push many datas in the queue
-	 */
-	public pushMany(datas: TDataType[] | Generator<TDataType>) {
+	public push(datas: TQDataTypes<TDataType>) {
 		this.stores.push(datas);
 	}
 
 	/**
 	 * Generator that pull datas from the queue
 	 */
-	private *generator() {
+	private async *generator() {
 		while (this.stores.length > 0) {
-			const store = this.stores.shift()!;
-			for (const data of store) {
+			const store = this.stores.shift() ?? [];
+			for await (const data of store) {
 				yield data;
 			}
 		}

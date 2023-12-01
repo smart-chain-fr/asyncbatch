@@ -13,7 +13,7 @@ import EventPaused from "./Events/EventPaused";
 import EventCleared from "./Events/EventCleared";
 import EventBeforeCleare from "./Events/EventBeforeCleare";
 import EventStart from "./Events/EventStart";
-import Queuer from "./Queuer";
+import Queuer, { TQDataTypes } from "./Queuer";
 
 /**
  * AsyncBatch is a Typescript library designed for performing batched asynchronous tasks while controlling concurrency, all without relying on external dependencies
@@ -47,7 +47,7 @@ export default class AsyncBatch<TDataType, TResponseType> {
 	 * @description Create method give you more control, you can listen to events or handle start, pause, stop, add, clear, etc...
 	 */
 	public static create<TDataType, TResponseType>(
-		datas: TDataType[] | Generator<TDataType>,
+		datas: TQDataTypes<TDataType>,
 		action: (data: TDataType) => TResponseType,
 		options: Partial<ICreateOptions> = {},
 	): AsyncBatch<TDataType, TResponseType> {
@@ -60,30 +60,28 @@ export default class AsyncBatch<TDataType, TResponseType> {
 	 * @description This is a lightwight version of create method
 	 * @returns Promise<void> resolved when all jobs are done (empty queue)
 	 */
-	public static run<TDataType, TResponseType>(
-		datas: TDataType[] | Generator<TDataType>,
+	public static async run<TDataType, TResponseType>(
+		datas: TQDataTypes<TDataType>,
 		action: (data: TDataType) => TResponseType,
 		options: Omit<Partial<ICreateOptions>, "autoStart"> = {},
 	): Promise<void> {
 		const asyncBatch = new this(action, { ...options, autoStart: true }).addMany(datas);
 		setImmediate(() => asyncBatch.handleQueue());
-		return asyncBatch.events.onEmptyPromise().then(() => Promise.resolve());
+		await asyncBatch.events.onEmptyPromise();
 	}
 
 	/**
 	 * @description Add data to the queue any time
 	 */
 	public add(...datas: TDataType[]): AsyncBatch<TDataType, TResponseType> {
-		this.queue.push(...datas);
-		this.unWaitNewDatas();
-		return this;
+		return this.addMany(datas);
 	}
 
 	/**
 	 * @description Add many datas to the queue any time
 	 */
-	public addMany(datas: TDataType[] | Generator<TDataType>): AsyncBatch<TDataType, TResponseType> {
-		this.queue.pushMany(datas);
+	public addMany(datas: TQDataTypes<TDataType>): AsyncBatch<TDataType, TResponseType> {
+		this.queue.push(datas);
 		this.unWaitNewDatas();
 		return this;
 	}
@@ -201,11 +199,12 @@ export default class AsyncBatch<TDataType, TResponseType> {
 		let isAlreadyPaused = false;
 		const countdown = Countdown.new(this.options.rateLimit?.msTimeRange ?? 0);
 		let callNumber = 0;
+
 		/**
-		 * @description terminate each loop step to let the next one start
+		 * @description Terminate the process of the current data
 		 */
-		const endLoopStep = (data: TDataType, responseStored?: TResponseType, errorStored?: string | Error) => {
-			this.currentConcurrency--;
+		const processDataEnd = (data: TDataType, responseStored?: TResponseType, errorStored?: string | Error) => {
+			this.updateConcurrency(-1);
 			this.emit(new EventProcessingEnd(this, data, responseStored, errorStored));
 			deferredQueue.resolve(undefined);
 			deferredQueue = this.createDeferred();
@@ -213,45 +212,33 @@ export default class AsyncBatch<TDataType, TResponseType> {
 		};
 
 		/**
-		 * @description Loop on the queue and call the action on each data
+		 * @description Process the data
 		 */
-		const loopOnConcurrency = async (data: TDataType): Promise<void> => {
-			if (!(await this.shouldPreserveData(data))) return endLoopStep(data);
-			if (!this.emitProcessStarted(data)) return endLoopStep(data);
+		const processData = async (data: TDataType): Promise<{ data: TDataType; response?: Awaited<TResponseType>; error?: string | Error }> => {
+			if (!(await this.shouldPreserveData(data))) return { data };
+			if (!this.emitProcessStarted(data)) return { data };
 
 			try {
-				const responseStored = await this.callAction(data);
-				const eventObject = new EventProcessingSuccess(this, data, responseStored);
-
-				this.emit(eventObject);
-				endLoopStep(data, responseStored);
-				return;
-			} catch (error) {
-				const errorStored = error as string | Error;
-				const eventObject = new EventProcessingError(this, data, errorStored);
-
-				this.emit(eventObject);
-				endLoopStep(data, undefined, errorStored);
-				return;
+				const response = await this.callAction(data);
+				this.emit(new EventProcessingSuccess(this, data, response));
+				return { data, response };
+			} catch (e) {
+				const error = e as string | Error;
+				this.emit(new EventProcessingError(this, data, error));
+				return { data, error };
 			}
 		};
 
 		let storedValue: TDataType | null = null;
+		/**
+		 * @description Loop on the queue and call the action on each data
+		 */
 		while (true) {
 			let isPreviouslyPaused = await this.forPause(isAlreadyPaused, (willPause) => {
 				isAlreadyPaused = willPause;
 			});
 
-			if (!storedValue) {
-				let nextData: IteratorResult<TDataType, void>;
-				do {
-					nextData = this.queue.pull().next();
-				} while (await this.mayWaitNewDatas(nextData, this.currentConcurrency));
-
-				if (nextData.done) throw new Error("Queue should not be empty at this point");
-
-				storedValue = nextData.value;
-			}
+			if (!storedValue) storedValue = await this.extractDataWhenReady();
 
 			if (isPreviouslyPaused || isPausedInit) {
 				isAlreadyPaused = false;
@@ -261,10 +248,10 @@ export default class AsyncBatch<TDataType, TResponseType> {
 			}
 
 			countdown.start();
-			this.currentConcurrency++;
-			let isMaxCalls = callNumber >= (this.options.rateLimit?.maxExecution ?? 0);
+			this.updateConcurrency(1);
+			const isMaxCalls = callNumber >= (this.options.rateLimit?.maxExecution ?? 0);
 			if (isMaxCalls && countdown.willWait()) {
-				this.currentConcurrency--;
+				this.updateConcurrency(-1);
 				await countdown.wait();
 				countdown.reload();
 				callNumber = 0;
@@ -273,7 +260,8 @@ export default class AsyncBatch<TDataType, TResponseType> {
 
 			callNumber++;
 
-			loopOnConcurrency(storedValue);
+			processData(storedValue).then(({ data, response, error }) => processDataEnd(data, response, error));
+
 			storedValue = null;
 
 			if (this.currentConcurrency === this.options.maxConcurrency) {
@@ -281,6 +269,10 @@ export default class AsyncBatch<TDataType, TResponseType> {
 				deferredQueue = this.createDeferred();
 			}
 		}
+	}
+
+	private updateConcurrency(value: 1 | -1): void {
+		this.currentConcurrency += value;
 	}
 
 	/**
@@ -339,6 +331,17 @@ export default class AsyncBatch<TDataType, TResponseType> {
 	private mayEmitFirstStart() {
 		const eventStartedObject = new EventStart(this);
 		this.emit(eventStartedObject);
+	}
+
+	private async extractDataWhenReady(): Promise<TDataType> {
+		let nextData: IteratorResult<TDataType, void>;
+		do {
+			nextData = await this.queue.pull().next();
+		} while (await this.mayWaitNewDatas(nextData, this.currentConcurrency));
+
+		if (nextData.done) throw new Error("Queue should not be empty at this point");
+
+		return nextData.value;
 	}
 
 	/**
