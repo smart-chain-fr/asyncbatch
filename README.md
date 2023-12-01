@@ -163,12 +163,13 @@ These events notify you when the batch processing starts and when it's paused.
 
 #### Processing Events
 ##### Processing Start Event
+
 ```ts
 asyncBatch.events.onProcessingStart((event) => {
   console.log("Processing started for data:", event.data);
 });
 ```
-This event is triggered when the processing of an item starts. The event parameter provides details about the ongoing process.
+> This event is triggered when the processing of an item starts. The event parameter provides details about the ongoing process.
 
 ##### Processing Success Event
 ```ts
@@ -177,7 +178,7 @@ asyncBatch.events.onProcessingSuccess(({ data, response }) => {
   console.log("Succes response:", response);
 });
 ```
-This event is triggered when the processing of an item succeeds or fails. The event parameter provides details about the ongoing process.
+> This event is triggered when the processing of an item succeeds or fails. The event parameter provides details about the ongoing process.
 
 ##### Processing End Event
 ```ts
@@ -190,7 +191,7 @@ if(error) {
     console.log("Succes response:", response);
 });
 ```
-This event is triggered when the processing of an item ends, providing the data, response, and any error that occurred.
+> This event is triggered when the processing of an item ends, providing the data, response, and any error that occurred.
 
 ##### Processing Error Event
 
@@ -199,7 +200,7 @@ asyncBatch.events.onProcessingError(({ error }) => {
   console.log("Error during processing:", error);
 });
 ```
-This event is triggered when error is occured.
+> This event is triggered when error is occured.
 
 
 #### Waiting for New Data
