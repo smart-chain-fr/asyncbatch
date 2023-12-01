@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.3] - 2023-12-01
+### Changed
+Documentation improvements and minor bug fixes.
+
+## [1.1.2] - 2023-11-29
+### Changed
+Generators are now supported as data types, and their use within the engine enhances memory efficiency and minimizes data duplication.
+
 ## [1.1.1] - 2023-11-28
 ### Changed
 - AsyncBatch can be instantiated with new promise run method simplifying the usage for a simple use case. 
