@@ -13,7 +13,7 @@ const datas = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
  */
 const simpleAction = async (data: number) => {
 	// Create a timoute to simulate a long action
-	await new Promise((resolve) => {
+	return await new Promise((resolve) => {
 		setTimeout(() => {
 			resolve((data + Math.random() * 4).toString());
 			console.log("processed", data);
