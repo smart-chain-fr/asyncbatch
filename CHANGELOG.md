@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.6] - 2023-12-03
+### Changed
+Adding async generators support in order to handle async complex tasks.
+
 ## [1.1.5] - 2023-12-01
 ### Changed
 removed publish script from package.json to avoid confusion with npm publish command, which is the recommended way to publish a package to npm.
