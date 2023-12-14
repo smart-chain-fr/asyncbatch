@@ -1,4 +1,5 @@
 import AsyncBatch from "../AsyncBatch";
+import EventProcessingError from "../AsyncBatch/Events/EventProcessingError";
 
 describe("AsyncBatch Events", () => {
 	let asyncBatch: AsyncBatch<number, any>;
@@ -84,9 +85,9 @@ describe("AsyncBatch Events", () => {
 		asyncBatch.start();
 	});
 
-	test("onProcessingError event is triggered when action fails", (done) => {
+	test("onProcessingError event is triggered when action fails", async () => {
 		asyncBatch = AsyncBatch.create(
-			datas,
+			[1],
 			() => {
 				throw new Error("Error");
 			},
@@ -94,12 +95,18 @@ describe("AsyncBatch Events", () => {
 				maxConcurrency: 4,
 				rateLimit: { msTimeRange: 200, maxExecution: 8 },
 			},
-		).setFilter(async () => true);
+		).start();
 
-		asyncBatch.events.onProcessingError(() => {
-			done();
+		await new Promise<void>((resolve) => {
+			asyncBatch.events.onProcessingErrorPromise().then((error) => {
+				expect(error).toBeInstanceOf(EventProcessingError);
+				resolve();
+			});
+
+			asyncBatch.events.onProcessingSuccessPromise().then(() => {
+				expect(true).toBe(false);
+				resolve();
+			});
 		});
-
-		asyncBatch.start();
 	});
 });

@@ -1,10 +1,10 @@
 /*
 	Example of a basic usage of AsyncBatch
 */
-import AsyncBatch from "../AsyncBatch";
+import AsyncBatch from "../AsyncBatch/index2";
 
 // Set the datas to process
-const datas = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const datas = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 /**
  * This is the simple method that will be executed on each data
@@ -29,5 +29,5 @@ const simpleAction = async (data: number) => {
 	 * When you use the run method the AsyncBatch is automatically started
 	 * Await the run method to wait for the end of the batch
 	 */
-	await AsyncBatch.run(datas, simpleAction, { maxConcurrency: 4, rateLimit: { maxExecution: 4, msTimeRange: 700 } });
+	await AsyncBatch.run(datas, simpleAction, { maxConcurrency: 4 });
 })();

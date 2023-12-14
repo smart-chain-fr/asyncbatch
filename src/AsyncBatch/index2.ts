@@ -218,10 +218,6 @@ export default class AsyncBatch<TDataType, TResponseType> {
 			data: TDataType,
 		): Promise<{ data: TDataType; response?: Awaited<TResponseType>; error?: string | Error }> => {
 			if (!(await this.shouldPreserveData(data))) return { data };
-
-			await this.rateLimiter.wait();
-			this.rateLimiter.shot();
-
 			if (!this.emitProcessStarted(data)) return { data };
 
 			try {
@@ -238,7 +234,7 @@ export default class AsyncBatch<TDataType, TResponseType> {
 		/**
 		 * @description Loop on the queue and call the action on each data
 		 */
-		while (true) {
+		while (true) {			
 			let isPreviouslyPaused = await this.forPause(isAlreadyPaused, (willPause) => {
 				isAlreadyPaused = willPause;
 			});
@@ -253,6 +249,10 @@ export default class AsyncBatch<TDataType, TResponseType> {
 			}
 
 			this.updateConcurrency(1);
+
+			
+			await this.rateLimiter.wait();
+			this.rateLimiter.shot();
 
 			processData(storedValue).then(({ data, response, error }) => processDataEnd(data, response, error));
 

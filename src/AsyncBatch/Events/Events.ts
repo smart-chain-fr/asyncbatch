@@ -16,9 +16,10 @@ type TRemoveEvent = () => void;
  * All that events are automatically garbage collected
  */
 export default class Events<TCtx, TData, TRes = unknown> {
-	public static EventsEnum = EEvents;
-	public EventsEnum = EEvents;
-	public constructor(public emitter: Emitter) {}
+	public static readonly EventsEnum = EEvents;
+	public readonly EventsEnum = EEvents;
+	public readonly emitter = new Emitter();
+	public constructor() {}
 
 	/**
 	 * @description Triggered for each processing is started
@@ -218,6 +219,10 @@ export default class Events<TCtx, TData, TRes = unknown> {
 		return () => {
 			this.emitter.off(eventName, listener);
 		};
+	}
+
+	public emit(eventName: EEvents, data: EventBasic<TCtx>): void {
+		this.emitter.emit(eventName, data);
 	}
 
 	/**

@@ -36,7 +36,11 @@ function getPaginatedUsersFromDatabase(page: number): Promise<number[]> {
  * Obviously in a real use case you will do something more useful and return what ever you want
  */
 const simpleAction = async (data: number) => {
-	return (data + Math.random() * 4).toString();
+	return new Promise<string>((resolve) => {
+		setTimeout(() => {
+			resolve((data + Math.random() * 4).toString());
+		}, 100);
+	});
 };
 
 /**
