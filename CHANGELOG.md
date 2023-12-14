@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.7] - 2023-12-14
+### Changed
+- Introducing the RateLimiter class implementing a sliding window algorithm, enhancing control over execution frequency within a specified time range.
+- Adding new functionalities including wait intervals and shot registration, ensuring compliance with defined limits and improving system efficiency.
+
+
 ## [1.1.6] - 2023-12-03
 ### Changed
 Adding async generators support in order to handle async complex tasks.
