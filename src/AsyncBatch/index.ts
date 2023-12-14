@@ -3,7 +3,6 @@ import Deferred from "./PromiseDeferred";
 import Events from "./Events";
 import Emitter from "./Events/Emitter";
 import EventBasic from "./Events/EventBasic";
-import Countdown from "./Countdown";
 import EventProcessingEnd from "./Events/EventProcessingEnd";
 import EventProcessingSuccess from "./Events/EventProcessingSuccess";
 import EventProcessingError from "./Events/EventProcessingError";
@@ -14,6 +13,7 @@ import EventCleared from "./Events/EventCleared";
 import EventBeforeCleare from "./Events/EventBeforeCleare";
 import EventStart from "./Events/EventStart";
 import Queuer, { TQDataTypes } from "./Queuer";
+import RateLimiter from "./RateLimiter";
 
 /**
  * AsyncBatch is a Typescript library designed for performing batched asynchronous tasks while controlling concurrency, all without relying on external dependencies
@@ -197,8 +197,7 @@ export default class AsyncBatch<TDataType, TResponseType> {
 		let isPausedInit = true;
 		let deferredQueue = this.createDeferred();
 		let isAlreadyPaused = false;
-		const countdown = Countdown.new(this.options.rateLimit?.msTimeRange ?? 0);
-		let callNumber = 0;
+		const rateLimiter = RateLimiter.new(this.options.rateLimit?.maxExecution ?? 0, this.options.rateLimit?.msTimeRange ?? 0);
 
 		/**
 		 * @description Terminate the process of the current data
@@ -229,7 +228,6 @@ export default class AsyncBatch<TDataType, TResponseType> {
 			}
 		};
 
-		let storedValue: TDataType | null = null;
 		/**
 		 * @description Loop on the queue and call the action on each data
 		 */
@@ -238,7 +236,7 @@ export default class AsyncBatch<TDataType, TResponseType> {
 				isAlreadyPaused = willPause;
 			});
 
-			if (!storedValue) storedValue = await this.extractDataWhenReady();
+			const storedValue = await this.extractDataWhenReady();
 
 			if (isPreviouslyPaused || isPausedInit) {
 				isAlreadyPaused = false;
@@ -247,22 +245,12 @@ export default class AsyncBatch<TDataType, TResponseType> {
 				isPausedInit = false;
 			}
 
-			countdown.start();
 			this.updateConcurrency(1);
-			const isMaxCalls = callNumber >= (this.options.rateLimit?.maxExecution ?? 0);
-			if (isMaxCalls && countdown.willWait()) {
-				this.updateConcurrency(-1);
-				await countdown.wait();
-				countdown.reload();
-				callNumber = 0;
-				continue;
-			}
 
-			callNumber++;
+			await rateLimiter.wait();
+			rateLimiter.shot();
 
 			processData(storedValue).then(({ data, response, error }) => processDataEnd(data, response, error));
-
-			storedValue = null;
 
 			if (this.currentConcurrency === this.options.maxConcurrency) {
 				await deferredQueue.promise;

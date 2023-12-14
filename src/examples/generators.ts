@@ -35,7 +35,7 @@ const simpleAction = async (data: number) => {
 	return await new Promise((resolve) => {
 		setTimeout(() => {
 			resolve((data + Math.random() * 4).toString());
-		}, 20);
+		}, Math.random() * 200);
 	});
 };
 
